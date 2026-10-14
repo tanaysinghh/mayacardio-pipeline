@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 public final class Rig implements AutoCloseable {
@@ -50,6 +51,8 @@ public final class Rig implements AutoCloseable {
     int mockStarts;
     int mockBufferSeconds = 10;
     String externalCloudUrl;
+    String mockCmdTemplate;
+    String checkerCmdTemplate;
     String externalCloudToken;
     int deviceStarts;
 
@@ -118,6 +121,22 @@ public final class Rig implements AutoCloseable {
         event("cloud_started", "port " + cloudPort + ", proxy " + proxy.port());
     }
 
+    public JsonNode cloudStatus(String session) {
+        try {
+            HttpURLConnection c = (HttpURLConnection) URI.create("http://127.0.0.1:" + proxy.port() + "/api/v1/sessions/" + session + "/status")
+                    .toURL().openConnection();
+            c.setConnectTimeout(2000);
+            c.setReadTimeout(30_000);
+            c.setRequestProperty("Authorization", "Bearer " + (externalCloudToken != null ? externalCloudToken : TOKEN));
+            if (c.getResponseCode() != 200) {
+                return null;
+            }
+            return Json.read(new String(c.getInputStream().readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
     static boolean httpOk(String url) {
         try {
             HttpURLConnection c = (HttpURLConnection) URI.create(url).toURL().openConnection();
@@ -129,7 +148,31 @@ public final class Rig implements AutoCloseable {
         }
     }
 
+    public boolean externalMock() {
+        return mockCmdTemplate != null;
+    }
+
+    static List<String> shell(String command) {
+        boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
+        return windows ? List.of("cmd.exe", "/c", command) : List.of("sh", "-c", "exec " + command);
+    }
+
     public void startMock() throws Exception {
+        if (externalMock()) {
+            mock = new Proc("mock", shell(mockCmdTemplate.replace("{port}", Integer.toString(mockPort))),
+                    work.resolve("mock.log"), null).start();
+            mockStarts++;
+            long deadline = System.nanoTime() + 60_000_000_000L;
+            while (System.nanoTime() < deadline) {
+                try (Socket s = new Socket("127.0.0.1", mockPort)) {
+                    break;
+                } catch (IOException e) {
+                    Thread.sleep(200);
+                }
+            }
+            event("mock_started", "external command, pid " + mock.pid());
+            return;
+        }
         mock = new Proc("mock", List.of(java, "-Xmx256m", "-jar", jars.resolve("biosignal-mock-standin.jar").toString(),
                 "--mode", mode, "--seed", "7", "--duration", "0", "--port", Integer.toString(mockPort),
                 "--control-port", Integer.toString(mockCtl), "--speed", Double.toString(speed),
@@ -184,6 +227,9 @@ public final class Rig implements AutoCloseable {
     }
 
     public String mockCmd(String cmd) throws IOException {
+        if (externalMock()) {
+            throw new IllegalStateException("scenario needs the stand-in's control port (" + cmd + "); not available with --mock-cmd");
+        }
         try (Socket s = new Socket("127.0.0.1", mockCtl);
              PrintWriter out = new PrintWriter(s.getOutputStream(), true, StandardCharsets.UTF_8);
              BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8))) {
@@ -305,6 +351,10 @@ public final class Rig implements AutoCloseable {
                 Map<String, Object> c = CheckStandin.check(d, Json.read(Files.readString(gt)), until);
                 r.put("ground_truth_check", c);
                 pass &= Boolean.TRUE.equals(c.get("pass"));
+            } else if (checkerCmdTemplate != null) {
+                Map<String, Object> c = runChecker(dev, id);
+                r.put("external_checker", c);
+                pass &= Integer.valueOf(0).equals(c.get("exit_code"));
             } else {
                 r.put("ground_truth_check", "missing ground truth file");
                 pass = false;
@@ -328,6 +378,21 @@ public final class Rig implements AutoCloseable {
         out.put("final_status", st == null ? null : Json.MAPPER.convertValue(st, Map.class));
         out.put("pass", pass);
         return out;
+    }
+
+    Map<String, Object> runChecker(Path export, String session) throws Exception {
+        String cmd = checkerCmdTemplate.replace("{export}", export.toString()).replace("{session}", session)
+                .replace("{gt}", gtDir.resolve(session + ".json").toString());
+        Path out = work.resolve("checker-" + session + ".txt");
+        ProcessBuilder pb = new ProcessBuilder(shell(cmd)).redirectErrorStream(true).redirectOutput(out.toFile());
+        Process p = pb.start();
+        boolean done = p.waitFor(30, TimeUnit.MINUTES);
+        String text = Files.readString(out);
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("command", cmd);
+        m.put("exit_code", done ? p.exitValue() : -1);
+        m.put("output_head", text.length() > 4000 ? text.substring(0, 4000) : text);
+        return m;
     }
 
     public Map<String, Object> latency(String sessionId, List<long[]> disruptedMs, long windowsFromMs) throws Exception {

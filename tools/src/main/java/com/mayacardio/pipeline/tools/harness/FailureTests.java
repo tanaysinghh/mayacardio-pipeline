@@ -70,6 +70,14 @@ public final class FailureTests {
             rig.mockBufferSeconds = num("mock-buffer-seconds", 10);
             rig.externalCloudUrl = opts.get("cloud-url");
             rig.externalCloudToken = opts.get("cloud-token");
+            rig.mockCmdTemplate = opts.get("mock-cmd");
+            rig.checkerCmdTemplate = opts.get("checker-cmd");
+            if (rig.mockCmdTemplate != null) {
+                result.put("external_mock_command", rig.mockCmdTemplate);
+            }
+            if (rig.checkerCmdTemplate != null) {
+                result.put("external_checker_command", rig.checkerCmdTemplate);
+            }
             if (rig.externalCloudUrl != null) {
                 result.put("external_cloud", rig.externalCloudUrl);
                 result.put("external_cloud_note", opts.getOrDefault("cloud-note", ""));
@@ -289,6 +297,17 @@ public final class FailureTests {
             Thread.sleep(2000);
         }
         rig.event("cloud_copy_complete", toSynced + " ms after restore");
+        String sessionId = rig.status().get("session").asText();
+        long toResults = -1;
+        while (rig.tMs() - restoreAt < 30 * 60_000L) {
+            JsonNode cs = rig.cloudStatus(sessionId);
+            if (cs != null && cs.path("windows_pending").asLong(Long.MAX_VALUE) <= 3) {
+                toResults = rig.tMs() - restoreAt;
+                break;
+            }
+            Thread.sleep(2000);
+        }
+        rig.event("cloud_online_results_complete", toResults + " ms after restore");
         JsonNode after = rig.status();
         rig.sleepUntil(rig.tMs() + 10_000);
         Map<String, Object> verify = rig.verifyAll(true);
@@ -298,6 +317,7 @@ public final class FailureTests {
         out.put("samples_backlog_at_restore", atRestore.path("backlog").asLong());
         out.put("ms_restore_to_online", toOnline);
         out.put("ms_restore_to_cloud_copy_complete", toSynced);
+        out.put("ms_restore_to_cloud_online_results_complete", toResults);
         out.put("http_bytes_sent_during_catchup", after.path("http_bytes_sent").asLong() - bytesBefore);
         out.put("generation_progress", progress);
         out.put("drain_progress", drain);
@@ -338,9 +358,10 @@ public final class FailureTests {
         startAll(rig);
         rig.sleepUntil(rig.tMs() + 30_000);
         String oldSession = rig.status().get("session").asText();
-        JsonNode gtBefore = Json.read(Files.readString(rig.gtDir.resolve(oldSession + ".json")));
-        long started = gtBefore.get("started_at_ms").asLong();
-        double sp = gtBefore.get("speed").asDouble();
+        Path gtFile = rig.gtDir.resolve(oldSession + ".json");
+        JsonNode gtBefore = Files.exists(gtFile) ? Json.read(Files.readString(gtFile)) : null;
+        long started = gtBefore == null ? 0 : gtBefore.get("started_at_ms").asLong();
+        double sp = gtBefore == null ? 1 : gtBefore.get("speed").asDouble();
         rig.killDevice();
         long cutWall = System.currentTimeMillis();
         rig.killMock();
@@ -355,7 +376,7 @@ public final class FailureTests {
         Map<String, Object> out = new LinkedHashMap<>();
         double worst = 0;
         for (JsonNode s : rig.sessions()) {
-            if (s.get("session").asText().equals(oldSession)) {
+            if (gtBefore != null && s.get("session").asText().equals(oldSession)) {
                 for (int sensor = 1; sensor <= 2; sensor++) {
                     long next = s.get("next_index_" + sensor).asLong();
                     double lostSec = (generatedAtCut - next) / 400.0 / sp;

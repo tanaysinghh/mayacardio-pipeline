@@ -54,6 +54,7 @@ public final class Main {
             case "export" -> code = export(cfg, opts);
             case "results" -> code = results(cfg, opts);
             case "sessions" -> code = sessions(cfg);
+            case "verify" -> code = verify(cfg);
             case "version" -> {
                 System.out.println("{\"pipeline\": \"1.0.0\"}");
                 code = 0;
@@ -74,6 +75,7 @@ public final class Main {
                   export --session ID --from device|cloud  JSON lines: samples then losses
                   results --session ID [--from both|device|cloud] [--mode online|offline]
                   sessions                                 list sessions on the device
+                  verify                                   database integrity and loss-ledger check (exit 0 = ok)
                   version""");
     }
 
@@ -295,6 +297,64 @@ public final class Main {
 
     private static String key(JsonNode n) {
         return String.format("%012d|%s", n.path("window").asLong(), n.path("mode").asText());
+    }
+
+    static int verify(DeviceConfig cfg) throws Exception {
+        if (!Files.exists(cfg.dbPath())) {
+            fail("no database at " + cfg.dbPath());
+            return 1;
+        }
+        boolean ok = true;
+        BufferedWriter w = stdout();
+        try (DeviceStore store = DeviceStore.open(cfg.dbPath())) {
+            String integrity = store.pragma("integrity_check");
+            ok &= "ok".equals(integrity);
+            line(w, "{\"integrity_check\": " + Json.quote(String.valueOf(integrity)) + "}");
+            for (DeviceStore.SessionInfo s : store.sessions()) {
+                ObjectNode n = Json.MAPPER.createObjectNode();
+                n.put("session", s.sessionId());
+                n.put("closed", s.closed());
+                boolean sessionOk = true;
+                for (int sensor = 1; sensor <= 2; sensor++) {
+                    DeviceStore.StreamState st = store.stream(s.sid(), sensor);
+                    com.mayacardio.pipeline.core.RangeSet stored = store.storedRuns(s.sid(), sensor);
+                    com.mayacardio.pipeline.core.RangeSet lost = new com.mayacardio.pipeline.core.RangeSet();
+                    long lostSum = 0;
+                    boolean openTail = false;
+                    for (LossRange l : store.losses(s.sid())) {
+                        if (l.sensor() != sensor) {
+                            continue;
+                        }
+                        if (l.toIndex() == null) {
+                            openTail = true;
+                            sessionOk &= l.fromIndex() == st.nextIndex();
+                            continue;
+                        }
+                        lost.add(l.fromIndex(), l.toIndex());
+                        lostSum += l.size();
+                    }
+                    com.mayacardio.pipeline.core.RangeSet union = stored.copy();
+                    for (long[] r : lost) {
+                        union.add(r[0], r[1]);
+                    }
+                    boolean tiles = st.nextIndex() == 0 ? union.isEmpty() : union.size() == 1 && union.first() == 0 && union.last() == st.nextIndex() - 1;
+                    boolean disjoint = lostSum == lost.count() && stored.minus(lost).count() == stored.count();
+                    boolean countOk = stored.count() == st.storedCount() && store.countSamples(s.sid(), sensor) == st.storedCount();
+                    n.put("next_index_" + sensor, st.nextIndex());
+                    n.put("saved_" + sensor, st.storedCount());
+                    n.put("lost_" + sensor, lost.count());
+                    n.put("open_tail_" + sensor, openTail);
+                    n.put("ledger_ok_" + sensor, tiles && disjoint && countOk);
+                    sessionOk &= tiles && disjoint && countOk;
+                }
+                n.put("ok", sessionOk);
+                ok &= sessionOk;
+                line(w, Json.write(n));
+            }
+        }
+        line(w, "{\"ok\": " + ok + "}");
+        w.flush();
+        return ok ? 0 : 1;
     }
 
     static int sessions(DeviceConfig cfg) throws Exception {

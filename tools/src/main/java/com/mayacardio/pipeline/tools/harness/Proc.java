@@ -45,6 +45,7 @@ public final class Proc {
 
     public void kill9() throws InterruptedException {
         if (process != null) {
+            process.descendants().forEach(ProcessHandle::destroyForcibly);
             process.destroyForcibly();
             process.waitFor(10, TimeUnit.SECONDS);
         }
@@ -52,6 +53,7 @@ public final class Proc {
 
     public void terminate() throws InterruptedException {
         if (process != null && process.isAlive()) {
+            process.descendants().forEach(ProcessHandle::destroy);
             process.destroy();
             if (!process.waitFor(15, TimeUnit.SECONDS)) {
                 process.destroyForcibly();

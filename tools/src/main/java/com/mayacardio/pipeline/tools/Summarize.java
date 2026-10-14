@@ -14,7 +14,7 @@ import java.util.Map;
 
 public final class Summarize {
     private static final String[] METRICS = {
-            "ms_cut_to_offline", "ms_restore_to_online", "ms_restore_to_cloud_copy_complete", "outage_seconds",
+            "ms_cut_to_offline", "ms_restore_to_online", "ms_restore_to_cloud_copy_complete", "ms_restore_to_cloud_online_results_complete", "external_cloud_note", "outage_seconds",
             "backlog_at_restore", "samples_backlog_at_restore", "http_bytes_sent_during_catchup", "offline_results_written",
             "worst_seconds_lost", "stated_bound_seconds", "ms_to_detect_disk_full", "pending_in_memory_while_full",
             "ms_to_recover_after_space_freed", "daemon_survived", "no_spurious_mode_switch", "hold_seconds",
