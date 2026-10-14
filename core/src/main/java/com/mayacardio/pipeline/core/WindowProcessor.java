@@ -33,8 +33,12 @@ public final class WindowProcessor {
             if (!view.isResolved(1, ha, e + 1)) {
                 return null;
             }
+            boolean both = Interpretation.hrNeedsBothSensors();
+            if (both && !view.isResolved(2, ha, e)) {
+                return null;
+            }
             SampleBlock h = view.load(1, ha, e);
-            if (h.allPresent()) {
+            if (h.allPresent() && (!both || view.load(2, ha, e).allPresent())) {
                 long[] peaks = PeakDetector.peaks(view, ha, e);
                 if (peaks == null) {
                     return null;

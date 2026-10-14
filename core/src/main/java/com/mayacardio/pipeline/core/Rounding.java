@@ -13,7 +13,7 @@ public final class Rounding {
         if (Double.isNaN(x) || Double.isInfinite(x)) {
             throw new IllegalArgumentException("not finite: " + x);
         }
-        BigDecimal r = new BigDecimal(x).setScale(1, MODE);
+        BigDecimal r = new BigDecimal(x).setScale(1, Interpretation.rounding());
         if (r.signum() == 0) {
             return BigDecimal.ZERO.setScale(1);
         }

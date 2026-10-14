@@ -1,6 +1,7 @@
 package com.mayacardio.pipeline.cloud.service;
 
 import com.mayacardio.pipeline.cloud.store.CloudStore;
+import com.mayacardio.pipeline.core.Interpretation;
 import com.mayacardio.pipeline.core.ResultJson;
 import com.mayacardio.pipeline.core.SignalView;
 import com.mayacardio.pipeline.core.WindowProcessor;
@@ -78,6 +79,10 @@ public final class ProcessingService implements AutoCloseable {
             if (r == null) {
                 continue;
             }
+            if (Interpretation.suppress(r, st.sessionEndExclusive())) {
+                done.add(w);
+                continue;
+            }
             String now = Instant.now().toString();
             String body = ResultJson.line(st.id(), ResultJson.ONLINE, r, ResultJson.timestamps(
                     "computed_at", now,
@@ -93,7 +98,7 @@ public final class ProcessingService implements AutoCloseable {
     }
 
     private void flush(SessionState st, List<CloudStore.StoredResult> batch, List<Long> done) {
-        if (batch.isEmpty()) {
+        if (batch.isEmpty() && done.isEmpty()) {
             return;
         }
         registry.store().upsertResults(st.id(), batch, Instant.now().toString());

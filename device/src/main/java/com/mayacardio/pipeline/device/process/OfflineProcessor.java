@@ -1,5 +1,6 @@
 package com.mayacardio.pipeline.device.process;
 
+import com.mayacardio.pipeline.core.Interpretation;
 import com.mayacardio.pipeline.core.MemorySignalView;
 import com.mayacardio.pipeline.core.ResultJson;
 import com.mayacardio.pipeline.core.SampleBlock;
@@ -109,10 +110,13 @@ public final class OfflineProcessor implements Runnable {
                 if (r == null) {
                     break;
                 }
+                w++;
+                if (Interpretation.suppress(r, current ? Long.MAX_VALUE : Math.min(end1, end2))) {
+                    continue;
+                }
                 String body = ResultJson.line(s.sessionId(), ResultJson.OFFLINE, r,
                         ResultJson.timestamps("computed_at", Clocks.wallIso()));
-                batch.add(new DeviceStore.StoredResult(w, ResultJson.OFFLINE, body));
-                w++;
+                batch.add(new DeviceStore.StoredResult(r.window(), ResultJson.OFFLINE, body));
                 if (batch.size() >= BATCH) {
                     flush(s.sid(), batch, w);
                 }

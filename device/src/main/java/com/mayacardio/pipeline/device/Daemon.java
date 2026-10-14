@@ -62,6 +62,12 @@ public final class Daemon {
             System.exit(3);
         }
         Files.createDirectories(cfg.runDir());
+        for (String key : com.mayacardio.pipeline.core.Interpretation.KEYS) {
+            String v = cfg.get(key, null);
+            if (v != null && !v.isBlank()) {
+                System.setProperty("pipeline." + key, v);
+            }
+        }
         DeviceState state = new DeviceState();
         DeviceStore collectorStore = open();
         collectorStore.event("daemon_start", "pid=" + ProcessHandle.current().pid());

@@ -1,7 +1,6 @@
 package com.mayacardio.pipeline.tools;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,7 +53,7 @@ public final class ReferenceProcessor {
     }
 
     private static String r1(double x) {
-        BigDecimal r = new BigDecimal(x).setScale(1, RoundingMode.HALF_EVEN);
+        BigDecimal r = new BigDecimal(x).setScale(1, com.mayacardio.pipeline.core.Interpretation.rounding());
         return r.signum() == 0 ? "0.0" : r.toPlainString();
     }
 
@@ -115,8 +114,9 @@ public final class ReferenceProcessor {
         if (w >= 4) {
             long ha = 400 * (w - 4);
             boolean all = true;
+            boolean both = com.mayacardio.pipeline.core.Interpretation.hrNeedsBothSensors();
             for (long i = ha; i <= e; i++) {
-                if (!has(1, i)) {
+                if (!has(1, i) || both && !has(2, i)) {
                     all = false;
                     break;
                 }

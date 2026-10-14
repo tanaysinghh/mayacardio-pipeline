@@ -72,6 +72,13 @@ public final class SessionState {
         finalNext[2] = next2;
     }
 
+    public synchronized long sessionEndExclusive() {
+        if (!closed || finalNext[1] == null || finalNext[2] == null) {
+            return Long.MAX_VALUE;
+        }
+        return Math.min(finalNext[1], finalNext[2]);
+    }
+
     public synchronized boolean closed() {
         return closed;
     }

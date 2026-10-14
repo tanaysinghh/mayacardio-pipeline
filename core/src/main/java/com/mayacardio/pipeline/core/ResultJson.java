@@ -21,12 +21,18 @@ public final class ResultJson {
         sb.append(", \"missing_1\": ").append(r.missing1());
         sb.append(", \"missing_2\": ").append(r.missing2());
         sb.append(", \"complete\": ").append(r.complete());
-        sb.append(", \"mean_1\": ").append(decimals(r.mean1()));
-        sb.append(", \"min_1\": ").append(ints(r.min1()));
-        sb.append(", \"max_1\": ").append(ints(r.max1()));
-        sb.append(", \"mean_2\": ").append(decimals(r.mean2()));
-        sb.append(", \"min_2\": ").append(ints(r.min2()));
-        sb.append(", \"max_2\": ").append(ints(r.max2()));
+        if (Interpretation.nestedLayout()) {
+            sb.append(", \"mean\": {\"sensor_1\": ").append(decimals(r.mean1())).append(", \"sensor_2\": ").append(decimals(r.mean2())).append('}');
+            sb.append(", \"min\": {\"sensor_1\": ").append(ints(r.min1())).append(", \"sensor_2\": ").append(ints(r.min2())).append('}');
+            sb.append(", \"max\": {\"sensor_1\": ").append(ints(r.max1())).append(", \"sensor_2\": ").append(ints(r.max2())).append('}');
+        } else {
+            sb.append(", \"mean_1\": ").append(decimals(r.mean1()));
+            sb.append(", \"min_1\": ").append(ints(r.min1()));
+            sb.append(", \"max_1\": ").append(ints(r.max1()));
+            sb.append(", \"mean_2\": ").append(decimals(r.mean2()));
+            sb.append(", \"min_2\": ").append(ints(r.min2()));
+            sb.append(", \"max_2\": ").append(ints(r.max2()));
+        }
         sb.append(", \"magnitude\": ").append(r.magnitude() == null ? "null" : r.magnitude().toPlainString());
         sb.append(", \"heart_rate\": ").append(r.heartRate() == null ? "null" : r.heartRate().toPlainString());
         if (timestamps != null) {
@@ -38,7 +44,22 @@ public final class ResultJson {
         return sb.append('}').toString();
     }
 
-    public static WindowResult parse(JsonNode n) {
+    public static JsonNode toFlat(JsonNode n) {
+        if (!n.has("mean") || !n.get("mean").isObject() || !n.isObject()) {
+            return n;
+        }
+        com.fasterxml.jackson.databind.node.ObjectNode o = ((com.fasterxml.jackson.databind.node.ObjectNode) n).deepCopy();
+        for (String f : new String[]{"mean", "min", "max"}) {
+            JsonNode g = o.remove(f);
+            for (int s = 1; s <= 2; s++) {
+                o.set(f + "_" + s, g == null ? null : g.get("sensor_" + s));
+            }
+        }
+        return o;
+    }
+
+    public static WindowResult parse(JsonNode raw) {
+        JsonNode n = toFlat(raw);
         return new WindowResult(
                 n.get("window").asLong(),
                 n.get("missing_1").asInt(),

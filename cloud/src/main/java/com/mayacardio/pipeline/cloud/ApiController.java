@@ -77,6 +77,7 @@ public class ApiController {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("service", "mayacardio pipeline cloud");
         m.put("storage", store.backend());
+        m.put("interpretation", com.mayacardio.pipeline.core.Interpretation.describe());
         m.put("started_at", startedAt);
         m.put("windows_computed_since_start", processing.windowsComputed());
         return json(m);

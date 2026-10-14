@@ -69,7 +69,7 @@ public final class CheckResults {
                 if (line.isBlank()) {
                     continue;
                 }
-                JsonNode n = Json.read(line);
+                JsonNode n = com.mayacardio.pipeline.core.ResultJson.toFlat(Json.read(line));
                 long w = n.get("window").asLong();
                 String mode = n.path("mode").asText();
                 long[] c = perMode.computeIfAbsent(mode, k -> new long[4]);
