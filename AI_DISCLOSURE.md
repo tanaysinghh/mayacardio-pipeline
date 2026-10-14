@@ -8,6 +8,6 @@ What the AI did:
 - Ran the builds, unit tests, failure scenarios and the ARM64 container runs, and recorded the outputs in `evidence/`.
 - Read public documentation pages of hosting providers (Hugging Face Spaces, Render, Koyeb, Neon, Northflank) through a browser extension to compare free tiers. It did not create accounts, log in, or enter any personal or payment details.
 
-What was decided or must be done by a human is listed in `MANUAL_TODO.md` (cloud accounts and deployment, the real-board tests, the demo video, obtaining the official mock and checker).
+Steps that need a human (cloud accounts and deployment, the real-board tests, the demo video, obtaining the official mock and checker) were left to the author.
 
-Interpretations the AI made where the brief was ambiguous are recorded in `DECISIONS.md`. The test evidence was produced against **stand-in** versions of the mock and the ground-truth checker that the AI wrote from the published protocol, not against the official tools.
+Interpretations of ambiguous points are summarised in the design note. The test evidence was produced against **stand-in** versions of the mock and the ground-truth checker that the AI wrote from the published protocol, not against the official tools.

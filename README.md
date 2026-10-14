@@ -2,13 +2,9 @@
 
 A crash-safe pipeline for a Raspberry Pi 4 class board (ARM64, 4 cores, 2 GB) that reads two sensors from the `biosignal-mock` service, saves every sample to local disk, streams to a free cloud service that computes a result for every 1-second window, keeps working offline with the same processing code, and sends everything the cloud is missing when the network returns.
 
-- Assessment text: [docs/ASSESSMENT_SPEC.md](docs/ASSESSMENT_SPEC.md)
-- Design note (2 pages, guarantees and limits): [docs/DESIGN.md](docs/DESIGN.md)
+- Design note (2 pages, guarantees and limits): [docs/DESIGN_NOTE.md](docs/DESIGN_NOTE.md)
 - Failure-test evidence: [evidence/SUMMARY.md](evidence/SUMMARY.md)
-- Self-review against the completion criteria and known gaps: [docs/SELF_REVIEW.md](docs/SELF_REVIEW.md)
-- Demo video script: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)
-- Cloud deployment (free tier): [docs/DEPLOY_CLOUD.md](docs/DEPLOY_CLOUD.md)
-- Interpretations and deviations: [DECISIONS.md](DECISIONS.md)
+- Cloud deployment (free tier): [docs/CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md)
 - AI use: [AI_DISCLOSURE.md](AI_DISCLOSURE.md)
 
 > **Stand-ins.** The official `biosignal-mock` and `check_ground_truth` were not available while this was built. `mock-standin` (jar `biosignal-mock-standin.jar`) and `check-standin` (in `pipeline-tools.jar`) are **our own stand-ins** written from the published protocol. All test results in `evidence/` were produced against the stand-ins. The pipeline only depends on the wire protocol, so the official mock can be used without code changes.
@@ -78,7 +74,7 @@ Run locally (embedded SQLite):
 CLOUD_API_TOKEN=secret java -jar dist/cloud-1.0.0-boot.jar --server.port=8080
 ```
 
-Run against PostgreSQL (the free hosted option): `CLOUD_STORAGE=postgres CLOUD_JDBC_URL=postgresql://user:pass@host/db?sslmode=require`. See [docs/DEPLOY_CLOUD.md](docs/DEPLOY_CLOUD.md) for the recommended free deployment (Render free web service + Neon free Postgres, no card) and the fallback.
+Run against PostgreSQL (the free hosted option): `CLOUD_STORAGE=postgres CLOUD_JDBC_URL=postgresql://user:pass@host/db?sslmode=require`. See [docs/CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md) for the recommended free deployment (Render free web service + Neon free Postgres, no card) and the fallback.
 
 API: `GET /health`, `POST /api/v1/ingest` (gzip binary batches), `GET /api/v1/sessions`, `GET /api/v1/sessions/{id}/ranges|results|export|status`, `POST /api/v1/sessions/{id}/losses|meta|results`.
 
@@ -89,7 +85,7 @@ API: `GET /health`, `POST /api/v1/ingest` (gzip binary batches), `GET /api/v1/se
 java -jar dist/pipeline-tools.jar failtest all --jars dist      # failure scenarios, writes evidence/*.json
 ```
 
-Failure scenarios: `baseline`, `kill9`, `netcut`, `mockfaults`, `powercut` (simulated), `backlog` (2 hours of data generated at 20x while offline, then real time), `diskfull` (needs a small filesystem, run in the Linux container), `clock` (needs CAP_SYS_TIME, run in the Linux container). See [docs/TESTING.md](docs/TESTING.md) and [evidence/SUMMARY.md](evidence/SUMMARY.md).
+Failure scenarios: `baseline`, `kill9`, `netcut`, `mockfaults`, `powercut` (simulated), `backlog` (2 hours of data generated at 20x while offline, then real time), `diskfull` (needs a small filesystem, run in the Linux container), `clock` (needs CAP_SYS_TIME, run in the Linux container). See [evidence/SUMMARY.md](evidence/SUMMARY.md).
 
 ## Resource measurement
 
