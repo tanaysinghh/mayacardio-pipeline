@@ -18,7 +18,8 @@ public final class Summarize {
             "backlog_at_restore", "samples_backlog_at_restore", "http_bytes_sent_during_catchup", "offline_results_written",
             "worst_seconds_lost", "stated_bound_seconds", "ms_to_detect_disk_full", "pending_in_memory_while_full",
             "ms_to_recover_after_space_freed", "daemon_survived", "no_spurious_mode_switch", "hold_seconds",
-            "simulated_outage_data_minutes", "generation_speed_while_offline", "mock_buffer_seconds_of_data", "skipped", "error"};
+            "simulated_outage_data_minutes", "generation_speed_while_offline", "mock_buffer_seconds_of_data", "clock_change_took_effect",
+            "losses_at_or_after_first_jump", "skipped", "error"};
 
     private Summarize() {
     }

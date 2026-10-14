@@ -27,7 +27,7 @@ biosignal-mock ──TCP/NDJSON──► Collector ──1 fsynced txn per reply
 
 **Interpretations** (each switchable by one config key, same value on device and cloud): rounding is round-half-even on the exact double (Python `round`); only sensor 1 gaps null the heart rate; result fields are flat (`mean_1`, `min_1`, …); a window with no data on a sensor is reported with `missing_N = 400` and nulls; the last window of a closed session is reported with indices past the end counted as missing; windows restart at 0 in each session.
 
-**Measured** (stand-ins, local network): {{MEASURED}}
+**Measured** (stand-ins, local network): online results 0.51 s (median) and at most 1.5 s after a window ends; offline 5.5 s after a network cut, online 1.0 s after it returns; a 60 s outage fully synced 2.0 s later; a 2-hour backlog (5.77 M samples, 28.5 MB on the wire) synced 11 s after restore, and **156 s with the cloud limited to 0.1 CPU / 512 MB** on PostgreSQL; three `kill -9` restarts, every injected mock fault, disk full and ±1 h clock jumps with zero silent loss, zero duplicates and every result equal to an independent reference.
 
 ## What is guaranteed, and under which assumptions
 
@@ -45,13 +45,14 @@ biosignal-mock ──TCP/NDJSON──► Collector ──1 fsynced txn per reply
 
 ## Maximum data loss on a power cut
 
-Data reaches disk only by commit, and a commit happens every poll (0.5 s when caught up) plus the time to read and commit one reply (normally 5-30 ms). At the moment of a power cut the samples generated since the last commit are either in the mock's memory or in ours, and both are gone (the mock runs on the same board and restarts with a new session). The loss is therefore **one poll interval plus one read-and-commit, about 0.5-0.6 s per sensor**; the largest gap between commits measured in all runs without an injected stall was {{GAP}}. We state **at most 1.0 s per sensor**, leaving margin for scheduling or I/O stalls on the Pi. The lost range is recorded at the next boot as `[next_index, null]`, reason `mock_session_restarted_unread_tail`. The simulated power cut (SIGKILL of daemon and mock together) lost {{POWERCUT}}. The bound assumes the storage honours fsync and the disk was not full.
+Data reaches disk only by commit, and a commit happens every poll (0.5 s when caught up) plus the time to read and commit one reply (normally 5-30 ms). At the moment of a power cut the samples generated since the last commit are either in the mock's memory or in ours, and both are gone (the mock runs on the same board and restarts with a new session). The loss is therefore **one poll interval plus one read-and-commit, about 0.5-0.6 s per sensor**; the largest gap between commits measured in all runs without an injected stall was 0.52 s. We state **at most 1.0 s per sensor**, leaving margin for scheduling or I/O stalls on the Pi. The lost range is recorded at the next boot as `[next_index, null]`, reason `mock_session_restarted_unread_tail`. The simulated power cut (SIGKILL of daemon and mock together) lost at most 0.20 s per sensor in the final run. The bound assumes the storage honours fsync and the disk was not full.
 
 ## Resource use (online, mock with `--duration 3600`)
 
 | Environment | Avg CPU (of 4 cores) | Peak RSS | Disk written | Network sent |
 |---|---|---|---|---|
-{{RESOURCES}}
+| amd64 Linux container, native x86-64, 4 CPUs / 2 GB, 15 min | 0.6 % (2.3 % of one core) | 109 MB | 176 MB/h | 15.6 MB/h |
+| ARM64 container under QEMU emulation, 4 CPUs / 2 GB, **1 hour** | 1.6 % (6.3 % of one core, inflated by emulation) | 270 MB (inflated) | 173 MB/h | 15.2 MB/h |
 | **Raspberry Pi 4, 1 hour** | **to be filled on the real board** | | | |
 
 Measured with `scripts/measure-resources.sh` (`/proc/PID/stat`, sampled RSS, `/proc/PID/io` `write_bytes`, `/proc/net/dev`; elapsed time from `/proc/uptime`). Writes are SQLite's: one fsynced transaction per reply (~4/s), each rewriting a few 1 KB pages in the WAL and again at checkpoint. Storing one compact row per reply instead of one row per sample cut writes from 336 to 176 MB/h at the same CPU; 1 KB pages had already cut them from 573. Emulated ARM64 CPU and memory are inflated by QEMU and are not Pi figures.
