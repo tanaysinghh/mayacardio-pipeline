@@ -16,3 +16,13 @@ services:
         generateValue: true
       - key: CLOUD_JDBC_POOL
         value: "3"
+      - key: PIPELINE_INTERPRET_ROUNDING
+        value: half_even
+      - key: PIPELINE_INTERPRET_HR_MISSING
+        value: sensor1
+      - key: PIPELINE_INTERPRET_RESULTS_LAYOUT
+        value: flat
+      - key: PIPELINE_INTERPRET_EMPTY_WINDOWS
+        value: report
+      - key: PIPELINE_INTERPRET_PARTIAL_FINAL_WINDOW
+        value: report
