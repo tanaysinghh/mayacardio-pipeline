@@ -49,6 +49,8 @@ public final class Rig implements AutoCloseable {
     Proc device;
     int mockStarts;
     int mockBufferSeconds = 10;
+    String externalCloudUrl;
+    String externalCloudToken;
     int deviceStarts;
 
     public Rig(Path work, Path jars, double speed, String mode) throws IOException {
@@ -90,10 +92,21 @@ public final class Rig implements AutoCloseable {
     }
 
     public void startCloud() throws Exception {
+        if (externalCloudUrl != null) {
+            URI u = URI.create(externalCloudUrl);
+            int port = u.getPort() > 0 ? u.getPort() : 80;
+            long deadline = System.nanoTime() + 300_000_000_000L;
+            while (System.nanoTime() < deadline && !httpOk(externalCloudUrl + "/health")) {
+                Thread.sleep(500);
+            }
+            proxy = new NetProxy(u.getHost(), port);
+            event("external_cloud", externalCloudUrl + " via proxy " + proxy.port());
+            return;
+        }
         Map<String, String> env = Map.of("CLOUD_SQLITE_PATH", work.resolve("cloud-data/cloud.db").toString(),
-                "CLOUD_API_TOKEN", TOKEN);
-        cloud = new Proc("cloud", List.of(java, "-Xmx512m", "-jar", jars.resolve("cloud-1.0.0-boot.jar").toString(),
-                "--server.port=" + cloudPort), work.resolve("cloud.log"), env).start();
+                "CLOUD_API_TOKEN", TOKEN, "PORT", Integer.toString(cloudPort));
+        cloud = new Proc("cloud", List.of(java, "-Xmx512m", "-jar", jars.resolve("cloud-1.0.0-all.jar").toString()),
+                work.resolve("cloud.log"), env).start();
         long deadline = System.nanoTime() + 60_000_000_000L;
         while (System.nanoTime() < deadline) {
             if (httpOk("http://127.0.0.1:" + cloudPort + "/health")) {
@@ -142,7 +155,7 @@ public final class Rig implements AutoCloseable {
         sb.append("run.dir=").append(runDir.toString().replace('\\', '/')).append('\n');
         if (proxy != null) {
             sb.append("cloud.url=http://127.0.0.1:").append(proxy.port()).append('\n');
-            sb.append("cloud.token=").append(TOKEN).append('\n');
+            sb.append("cloud.token=").append(externalCloudToken != null ? externalCloudToken : TOKEN).append('\n');
         }
         for (Map.Entry<String, String> e : deviceExtra.entrySet()) {
             sb.append(e.getKey()).append('=').append(e.getValue()).append('\n');

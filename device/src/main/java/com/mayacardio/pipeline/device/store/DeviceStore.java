@@ -38,8 +38,8 @@ public final class DeviceStore implements AutoCloseable {
     private static final String[] SCHEMA = {
             "CREATE TABLE IF NOT EXISTS sessions(sid INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL UNIQUE,"
                     + " first_seen TEXT NOT NULL, closed INTEGER NOT NULL DEFAULT 0, close_reason TEXT, closed_at TEXT)",
-            "CREATE TABLE IF NOT EXISTS samples(sid INTEGER NOT NULL, sensor INTEGER NOT NULL, idx INTEGER NOT NULL,"
-                    + " v1 INTEGER NOT NULL, v2 INTEGER NOT NULL, v3 INTEGER, PRIMARY KEY(sid, sensor, idx)) WITHOUT ROWID",
+            "CREATE TABLE IF NOT EXISTS sample_blocks(sid INTEGER NOT NULL, sensor INTEGER NOT NULL, first_idx INTEGER NOT NULL,"
+                    + " count INTEGER NOT NULL, data BLOB NOT NULL, UNIQUE(sid, sensor, first_idx))",
             "CREATE TABLE IF NOT EXISTS losses(sid INTEGER NOT NULL, sensor INTEGER NOT NULL, from_index INTEGER NOT NULL,"
                     + " to_index INTEGER, reason TEXT NOT NULL, recorded_at TEXT NOT NULL, synced INTEGER NOT NULL DEFAULT 0,"
                     + " PRIMARY KEY(sid, sensor, from_index))",
@@ -246,47 +246,39 @@ public final class DeviceStore implements AutoCloseable {
         return tx(() -> {
             insertLosses(c.sid(), c.losses());
             long inserted = 0;
-            int[][] rows = c.rows();
+            long committedNext = 0;
+            Long runFrom = null;
+            Long runTo = null;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT next_index, run_from, run_to FROM stream_state WHERE sid = ? AND sensor = ?")) {
+                ps.setLong(1, c.sid());
+                ps.setInt(2, c.sensor());
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        committedNext = rs.getLong(1);
+                        long f = rs.getLong(2);
+                        runFrom = rs.wasNull() ? null : f;
+                        long t = rs.getLong(3);
+                        runTo = rs.wasNull() ? null : t;
+                    }
+                }
+            }
+            int skip = (int) Math.max(0, Math.min(c.rows().length, committedNext - c.dataFirst()));
+            int[][] rows = skip == 0 ? c.rows() : java.util.Arrays.copyOfRange(c.rows(), skip, c.rows().length);
+            long first = c.dataFirst() + skip;
             if (rows.length > 0) {
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT OR IGNORE INTO samples(sid, sensor, idx, v1, v2, v3) VALUES(?, ?, ?, ?, ?, ?)")) {
-                    for (int k = 0; k < rows.length; k++) {
-                        int[] r = rows[k];
-                        ps.setLong(1, c.sid());
-                        ps.setInt(2, c.sensor());
-                        ps.setLong(3, c.dataFirst() + k);
-                        ps.setInt(4, r[0]);
-                        ps.setInt(5, r[1]);
-                        if (r.length > 2) {
-                            ps.setInt(6, r[2]);
-                        } else {
-                            ps.setNull(6, Types.INTEGER);
-                        }
-                        ps.addBatch();
-                    }
-                    for (int n : ps.executeBatch()) {
-                        if (n > 0) {
-                            inserted += n;
-                        }
-                    }
-                }
-                long last = c.dataFirst() + rows.length - 1;
-                Long runFrom = null;
-                Long runTo = null;
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "SELECT run_from, run_to FROM stream_state WHERE sid = ? AND sensor = ?")) {
+                        "INSERT INTO sample_blocks(sid, sensor, first_idx, count, data) VALUES(?, ?, ?, ?, ?)")) {
                     ps.setLong(1, c.sid());
                     ps.setInt(2, c.sensor());
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            long f = rs.getLong(1);
-                            runFrom = rs.wasNull() ? null : f;
-                            long t = rs.getLong(2);
-                            runTo = rs.wasNull() ? null : t;
-                        }
-                    }
+                    ps.setLong(3, first);
+                    ps.setInt(4, rows.length);
+                    ps.setBytes(5, BlockCodec.encode(rows, Signal.channels(c.sensor())));
+                    ps.executeUpdate();
                 }
-                if (runTo != null && runTo == c.dataFirst() - 1) {
+                inserted = rows.length;
+                long last = first + rows.length - 1;
+                if (runTo != null && runTo == first - 1) {
                     runTo = last;
                 } else {
                     if (runFrom != null) {
@@ -299,7 +291,7 @@ public final class DeviceStore implements AutoCloseable {
                             ps.executeUpdate();
                         }
                     }
-                    runFrom = c.dataFirst();
+                    runFrom = first;
                     runTo = last;
                 }
                 try (PreparedStatement ps = conn.prepareStatement(
@@ -427,54 +419,79 @@ public final class DeviceStore implements AutoCloseable {
         });
     }
 
-    public synchronized SampleBlock block(long sid, int sensor, long from, long to) throws SQLException {
-        SampleBlock block = new SampleBlock(from, to, Signal.channels(sensor));
+    private interface BlockVisitor {
+        void visit(long first, int[][] rows) throws java.io.IOException;
+    }
+
+    private void blocksOverlapping(long sid, int sensor, long from, long to, BlockVisitor v) throws SQLException, java.io.IOException {
+        int channels = Signal.channels(sensor);
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT idx, v1, v2, v3 FROM samples WHERE sid = ? AND sensor = ? AND idx BETWEEN ? AND ?")) {
+                "SELECT first_idx, count, data FROM sample_blocks WHERE sid = ? AND sensor = ? AND first_idx <= ?"
+                        + " AND first_idx >= (SELECT COALESCE(MAX(first_idx), ?) FROM sample_blocks WHERE sid = ? AND sensor = ? AND first_idx <= ?)"
+                        + " ORDER BY first_idx")) {
+            ps.setFetchSize(64);
             ps.setLong(1, sid);
             ps.setInt(2, sensor);
-            ps.setLong(3, from);
-            ps.setLong(4, to);
+            ps.setLong(3, to);
+            ps.setLong(4, from);
+            ps.setLong(5, sid);
+            ps.setInt(6, sensor);
+            ps.setLong(7, from);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    block.put(rs.getLong(1), rs.getInt(2), rs.getInt(3), rs.getInt(4));
+                    long first = rs.getLong(1);
+                    int count = rs.getInt(2);
+                    if (first + count - 1 < from) {
+                        continue;
+                    }
+                    v.visit(first, BlockCodec.decode(rs.getBytes(3), count, channels));
                 }
             }
+        }
+    }
+
+    public synchronized SampleBlock block(long sid, int sensor, long from, long to) throws SQLException {
+        SampleBlock block = new SampleBlock(from, to, Signal.channels(sensor));
+        try {
+            blocksOverlapping(sid, sensor, from, to, (first, rows) -> {
+                long a = Math.max(first, from);
+                long b = Math.min(first + rows.length - 1, to);
+                for (long i = a; i <= b; i++) {
+                    block.put(i, rows[(int) (i - first)]);
+                }
+            });
+        } catch (java.io.IOException e) {
+            throw new SQLException(e);
         }
         return block;
     }
 
     public synchronized List<SampleRun> runs(long sid, int sensor, long from, long to) throws SQLException {
         List<SampleRun> out = new ArrayList<>();
-        int channels = Signal.channels(sensor);
-        try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT idx, v1, v2, v3 FROM samples WHERE sid = ? AND sensor = ? AND idx BETWEEN ? AND ? ORDER BY idx")) {
-            ps.setLong(1, sid);
-            ps.setInt(2, sensor);
-            ps.setLong(3, from);
-            ps.setLong(4, to);
-            try (ResultSet rs = ps.executeQuery()) {
-                List<int[]> cur = new ArrayList<>();
-                long curFirst = -1;
-                long prev = -2;
-                while (rs.next()) {
-                    long idx = rs.getLong(1);
-                    if (idx != prev + 1 && !cur.isEmpty()) {
-                        out.add(new SampleRun(sensor, curFirst, cur.toArray(new int[0][])));
-                        cur = new ArrayList<>();
+        List<int[]> cur = new ArrayList<>();
+        long[] curFirst = {-1};
+        long[] prev = {-2};
+        try {
+            blocksOverlapping(sid, sensor, from, to, (first, rows) -> {
+                long a = Math.max(first, from);
+                long b = Math.min(first + rows.length - 1, to);
+                for (long i = a; i <= b; i++) {
+                    if (i != prev[0] + 1 && !cur.isEmpty()) {
+                        out.add(new SampleRun(sensor, curFirst[0], cur.toArray(new int[0][])));
+                        cur.clear();
                     }
                     if (cur.isEmpty()) {
-                        curFirst = idx;
+                        curFirst[0] = i;
                     }
-                    int[] row = channels == 3 ? new int[]{rs.getInt(2), rs.getInt(3), rs.getInt(4)}
-                            : new int[]{rs.getInt(2), rs.getInt(3)};
-                    cur.add(row);
-                    prev = idx;
+                    cur.add(rows[(int) (i - first)]);
+                    prev[0] = i;
                 }
-                if (!cur.isEmpty()) {
-                    out.add(new SampleRun(sensor, curFirst, cur.toArray(new int[0][])));
-                }
-            }
+            });
+        } catch (java.io.IOException e) {
+            throw new SQLException(e);
+        }
+        if (!cur.isEmpty()) {
+            out.add(new SampleRun(sensor, curFirst[0], cur.toArray(new int[0][])));
         }
         return out;
     }
@@ -484,20 +501,11 @@ public final class DeviceStore implements AutoCloseable {
     }
 
     public synchronized void forEachSample(long sid, int sensor, SampleConsumer consumer) throws SQLException, java.io.IOException {
-        int channels = Signal.channels(sensor);
-        try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT idx, v1, v2, v3 FROM samples WHERE sid = ? AND sensor = ? ORDER BY idx")) {
-            ps.setFetchSize(4000);
-            ps.setLong(1, sid);
-            ps.setInt(2, sensor);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    int[] row = channels == 3 ? new int[]{rs.getInt(2), rs.getInt(3), rs.getInt(4)}
-                            : new int[]{rs.getInt(2), rs.getInt(3)};
-                    consumer.accept(sensor, rs.getLong(1), row);
-                }
+        blocksOverlapping(sid, sensor, 0, Long.MAX_VALUE, (first, rows) -> {
+            for (int k = 0; k < rows.length; k++) {
+                consumer.accept(sensor, first + k, rows[k]);
             }
-        }
+        });
     }
 
     public synchronized void insertResults(long sid, List<StoredResult> results, Long nextOfflineWindow) throws SQLException {
@@ -646,7 +654,7 @@ public final class DeviceStore implements AutoCloseable {
     }
 
     public synchronized long countSamples(long sid, int sensor) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM samples WHERE sid = ? AND sensor = ?")) {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT COALESCE(SUM(count), 0) FROM sample_blocks WHERE sid = ? AND sensor = ?")) {
             ps.setLong(1, sid);
             ps.setInt(2, sensor);
             try (ResultSet rs = ps.executeQuery()) {

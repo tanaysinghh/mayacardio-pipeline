@@ -30,7 +30,7 @@ sudo apt-get update && sudo apt-get install -y git openjdk-17-jdk-headless
 git clone <this repo> pipeline && cd pipeline
 ./mvnw -q -DskipTests package          # about 3-6 minutes on a Pi 4 the first time
 mkdir -p dist && cp device/target/device-1.0.0-all.jar mock-standin/target/biosignal-mock-standin.jar \
-   tools/target/pipeline-tools.jar cloud/target/cloud-1.0.0-boot.jar dist/
+   tools/target/pipeline-tools.jar cloud/target/cloud-1.0.0-all.jar dist/
 sudo ./scripts/install.sh --cloud-url https://YOUR-CLOUD-HOST --token YOUR-TOKEN
 ```
 
@@ -71,7 +71,7 @@ Every key can be overridden by an environment variable `PIPELINE_<KEY>` with dot
 Run locally (embedded SQLite):
 
 ```sh
-CLOUD_API_TOKEN=secret java -jar dist/cloud-1.0.0-boot.jar --server.port=8080
+CLOUD_API_TOKEN=secret java -jar dist/cloud-1.0.0-all.jar --server.port=8080
 ```
 
 Run against PostgreSQL (the free hosted option): `CLOUD_STORAGE=postgres CLOUD_JDBC_URL=postgresql://user:pass@host/db?sslmode=require`. See [docs/CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md) for the recommended free deployment (Render free web service + Neon free Postgres, no card) and the fallback.

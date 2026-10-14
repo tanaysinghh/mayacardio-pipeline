@@ -51,7 +51,7 @@ if [ "$BUILD" -eq 1 ] || [ ! -f "$REPO/dist/device-1.0.0-all.jar" ]; then
   mkdir -p "$REPO/dist"
   cp "$REPO/device/target/device-1.0.0-all.jar" "$REPO/mock-standin/target/biosignal-mock-standin.jar" \
      "$REPO/tools/target/pipeline-tools.jar" "$REPO/dist/"
-  cp "$REPO/cloud/target/cloud-1.0.0-boot.jar" "$REPO/dist/" 2>/dev/null || true
+  cp "$REPO/cloud/target/cloud-1.0.0-all.jar" "$REPO/dist/" 2>/dev/null || true
 fi
 
 id pipeline >/dev/null 2>&1 || useradd --system --home-dir /var/lib/pipeline --shell /usr/sbin/nologin pipeline

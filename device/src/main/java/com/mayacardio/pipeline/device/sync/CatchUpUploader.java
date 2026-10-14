@@ -23,6 +23,10 @@ import java.util.concurrent.atomic.AtomicLongArray;
 
 public final class CatchUpUploader implements Runnable {
     private static final long IDLE_RECHECK_MS = 5000;
+    private static final long LONG_OUTAGE_MS = 60_000;
+    private static final long WAKE_TIMEOUT_MS = 120_000;
+    private static final long MAX_BACKOFF_MS = 30_000;
+    private static final int MIN_CHUNK = 4000;
 
     private final Path dbPath;
     private final DeviceStore store;
@@ -30,6 +34,10 @@ public final class CatchUpUploader implements Runnable {
     private final DeviceState state;
     private final ConnectivityMonitor monitor;
     private final int chunkSamples;
+    private volatile int currentChunk;
+    private volatile long offlineSinceMono = -1;
+    private volatile boolean wakeTimeouts;
+    private long backoffMs;
     private final int parallel;
     private final long timeoutMs;
     private final AtomicLongArray liveFrom;
@@ -50,6 +58,7 @@ public final class CatchUpUploader implements Runnable {
         this.state = state;
         this.monitor = monitor;
         this.chunkSamples = chunkSamples;
+        this.currentChunk = chunkSamples;
         this.parallel = Math.max(1, parallel);
         this.timeoutMs = timeoutMs;
         this.liveFrom = liveFrom;
@@ -57,6 +66,23 @@ public final class CatchUpUploader implements Runnable {
 
     public long backlogSamples() {
         return backlogSamples.get();
+    }
+
+    public void onModeChange(String mode) {
+        if (DeviceState.OFFLINE.equals(mode)) {
+            offlineSinceMono = Clocks.monoMs();
+        } else {
+            if (offlineSinceMono >= 0 && Clocks.monoMs() - offlineSinceMono > LONG_OUTAGE_MS) {
+                wakeTimeouts = true;
+            }
+            offlineSinceMono = -1;
+            backoffMs = 0;
+            kick();
+        }
+    }
+
+    private long timeout() {
+        return wakeTimeouts ? Math.max(timeoutMs, WAKE_TIMEOUT_MS) : timeoutMs;
     }
 
     public void kick() {
@@ -95,9 +121,15 @@ public final class CatchUpUploader implements Runnable {
             if (state.online()) {
                 try {
                     more = pass();
+                    wakeTimeouts = false;
+                    backoffMs = 0;
                 } catch (IOException e) {
                     state.setLastError("catch-up: " + e.getMessage());
                     System.out.println(Clocks.wallIso() + " catch-up failed: " + e.getMessage());
+                    if (String.valueOf(e.getMessage()).contains("timed out")) {
+                        currentChunk = Math.max(MIN_CHUNK, currentChunk / 2);
+                    }
+                    backoffMs = backoffMs == 0 ? 1000 : Math.min(MAX_BACKOFF_MS, backoffMs * 2);
                     monitor.reportFailure();
                 } catch (SQLException | RuntimeException e) {
                     state.setLastError("catch-up: " + e);
@@ -108,7 +140,8 @@ public final class CatchUpUploader implements Runnable {
                     if (!kick && running) {
                         try {
                             boolean recentKick = Clocks.monoMs() - kickedAtMono < 15_000;
-                            wake.wait(recentKick ? 1000 : IDLE_RECHECK_MS);
+                            long wait = backoffMs > 0 ? backoffMs : recentKick ? 1000 : IDLE_RECHECK_MS;
+                            wake.wait(wait);
                         } catch (InterruptedException e) {
                             break;
                         }
@@ -138,7 +171,7 @@ public final class CatchUpUploader implements Runnable {
                 return false;
             }
             boolean isCurrent = s.sid() == current.sid() && !s.closed();
-            CloudClient.Ranges cloudRanges = cloud.ranges(s.sessionId(), timeoutMs);
+            CloudClient.Ranges cloudRanges = cloud.ranges(s.sessionId(), timeout());
             RangeSet[] missing = new RangeSet[3];
             long sessionBacklog = 0;
             for (int sensor = 1; sensor <= 2; sensor++) {
@@ -156,11 +189,11 @@ public final class CatchUpUploader implements Runnable {
                 sendMissing(s, missing);
                 sentSomething = true;
             }
-            SyncSupport.syncLosses(store, cloud, s, timeoutMs);
-            SyncSupport.syncMeta(store, cloud, s, timeoutMs);
-            SyncSupport.syncResults(store, cloud, s, state, timeoutMs);
+            SyncSupport.syncLosses(store, cloud, s, timeout());
+            SyncSupport.syncMeta(store, cloud, s, timeout());
+            SyncSupport.syncResults(store, cloud, s, state, timeout());
             if (s.closed()) {
-                CloudClient.Ranges after = cloud.ranges(s.sessionId(), timeoutMs);
+                CloudClient.Ranges after = cloud.ranges(s.sessionId(), timeout());
                 boolean complete = true;
                 for (int sensor = 1; sensor <= 2; sensor++) {
                     if (!store.storedRuns(s.sid(), sensor).minus(after.held()[sensor]).isEmpty()) {
@@ -193,7 +226,7 @@ public final class CatchUpUploader implements Runnable {
         List<long[]> chunks = new ArrayList<>();
         long a = lo;
         while (a <= hi) {
-            long b = Math.min(hi, a + chunkSamples - 1);
+            long b = Math.min(hi, a + currentChunk - 1);
             boolean any = false;
             for (int sensor = 1; sensor <= 2; sensor++) {
                 any |= missing[sensor].intersects(a, b);
@@ -246,7 +279,10 @@ public final class CatchUpUploader implements Runnable {
             return 0;
         }
         byte[] body = BatchCodec.encode(new BatchCodec.Batch(s.sessionId(), Clocks.wallMs(), runs));
-        JsonNode resp = cloud.ingest(body, timeoutMs);
+        JsonNode resp = cloud.ingest(body, timeout());
+        if (currentChunk < chunkSamples) {
+            currentChunk = Math.min(chunkSamples, currentChunk * 2);
+        }
         long n = 0;
         for (SampleRun r : runs) {
             n += r.count();

@@ -1,38 +1,51 @@
 package com.mayacardio.pipeline.cloud;
 
-import com.mayacardio.pipeline.cloud.service.IngestService;
-import com.mayacardio.pipeline.cloud.service.ProcessingService;
-import com.mayacardio.pipeline.cloud.service.SessionRegistry;
-import com.mayacardio.pipeline.cloud.store.CloudStore;
-import com.mayacardio.pipeline.cloud.store.JdbcCloudStore;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.sqlite.SQLiteConfig;
 
-import javax.sql.DataSource;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
-@Configuration
-public class CloudConfig {
+public final class CloudConfig {
+    private final Map<String, String> env;
 
-    @Bean(destroyMethod = "close")
-    public HikariDataSource cloudDataSource(@Value("${cloud.storage:sqlite}") String storage,
-                                            @Value("${cloud.sqlite.path:./cloud-data/cloud.db}") String sqlitePath,
-                                            @Value("${cloud.jdbc.url:}") String jdbcUrl,
-                                            @Value("${cloud.jdbc.user:}") String user,
-                                            @Value("${cloud.jdbc.password:}") String password,
-                                            @Value("${cloud.jdbc.pool:4}") int pool) throws Exception {
+    public CloudConfig(Map<String, String> env) {
+        this.env = env;
+    }
+
+    public String get(String key, String def) {
+        String v = env.get(key);
+        return v == null || v.isBlank() ? def : v.trim();
+    }
+
+    public int port() {
+        return Integer.parseInt(get("PORT", "8080"));
+    }
+
+    public boolean postgres() {
+        return "postgres".equalsIgnoreCase(get("CLOUD_STORAGE", "sqlite"));
+    }
+
+    public String token() {
+        return get("CLOUD_API_TOKEN", "");
+    }
+
+    public int httpThreads() {
+        return Integer.parseInt(get("CLOUD_HTTP_THREADS", "8"));
+    }
+
+    public HikariDataSource dataSource() throws IOException {
         HikariConfig hc = new HikariConfig();
         hc.setPoolName("cloud-store");
-        if ("postgres".equalsIgnoreCase(storage)) {
-            String[] parsed = toJdbc(jdbcUrl, user, password);
+        int pool = Integer.parseInt(get("CLOUD_JDBC_POOL", "4"));
+        if (postgres()) {
+            String[] parsed = toJdbc(get("CLOUD_JDBC_URL", ""), get("CLOUD_JDBC_USER", ""), get("CLOUD_JDBC_PASSWORD", ""));
             hc.setJdbcUrl(parsed[0]);
             if (!parsed[1].isEmpty()) {
                 hc.setUsername(parsed[1]);
@@ -45,8 +58,9 @@ public class CloudConfig {
             hc.setIdleTimeout(120_000);
             hc.setMaxLifetime(240_000);
             hc.setConnectionTimeout(15_000);
+            hc.setInitializationFailTimeout(-1);
         } else {
-            Path p = Path.of(sqlitePath).toAbsolutePath();
+            Path p = Path.of(get("CLOUD_SQLITE_PATH", "./cloud-data/cloud.db")).toAbsolutePath();
             Files.createDirectories(p.getParent());
             SQLiteConfig sc = new SQLiteConfig();
             sc.setJournalMode(SQLiteConfig.JournalMode.WAL);
@@ -61,7 +75,7 @@ public class CloudConfig {
 
     static String[] toJdbc(String url, String user, String password) {
         if (url == null || url.isBlank()) {
-            throw new IllegalStateException("cloud.storage=postgres requires CLOUD_JDBC_URL");
+            throw new IllegalStateException("CLOUD_STORAGE=postgres requires CLOUD_JDBC_URL");
         }
         if (url.startsWith("jdbc:")) {
             return new String[]{url, user, password};
@@ -81,33 +95,5 @@ public class CloudConfig {
         String query = u.getRawQuery() == null ? "sslmode=require" : u.getRawQuery();
         String jdbc = "jdbc:postgresql://" + u.getHost() + (u.getPort() > 0 ? ":" + u.getPort() : "") + u.getRawPath() + "?" + query;
         return new String[]{jdbc, u2, p2};
-    }
-
-    @Bean
-    public CloudStore cloudStore(DataSource ds, @Value("${cloud.storage:sqlite}") String storage) {
-        JdbcCloudStore store = new JdbcCloudStore(ds,
-                "postgres".equalsIgnoreCase(storage) ? JdbcCloudStore.Dialect.POSTGRES : JdbcCloudStore.Dialect.SQLITE);
-        store.init();
-        return store;
-    }
-
-    @Bean
-    public SessionRegistry sessionRegistry(CloudStore store) {
-        return new SessionRegistry(store);
-    }
-
-    @Bean(destroyMethod = "close")
-    public ProcessingService processingService(SessionRegistry registry) {
-        return new ProcessingService(registry);
-    }
-
-    @Bean
-    public IngestService ingestService(SessionRegistry registry, ProcessingService processing) {
-        return new IngestService(registry, processing);
-    }
-
-    @Bean
-    public TokenFilter tokenFilter(@Value("${cloud.api.token:}") String token) {
-        return new TokenFilter(token);
     }
 }

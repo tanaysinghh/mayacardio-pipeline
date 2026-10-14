@@ -68,6 +68,12 @@ public final class FailureTests {
         try {
             rig = new Rig(work, jars, Double.parseDouble(opts.getOrDefault("speed", "1")), opts.getOrDefault("mode", "signal"));
             rig.mockBufferSeconds = num("mock-buffer-seconds", 10);
+            rig.externalCloudUrl = opts.get("cloud-url");
+            rig.externalCloudToken = opts.get("cloud-token");
+            if (rig.externalCloudUrl != null) {
+                result.put("external_cloud", rig.externalCloudUrl);
+                result.put("external_cloud_note", opts.getOrDefault("cloud-note", ""));
+            }
             result.put("mock_buffer_seconds_of_data", rig.mockBufferSeconds);
             Map<String, Object> r = switch (name) {
                 case "baseline" -> baseline(rig);

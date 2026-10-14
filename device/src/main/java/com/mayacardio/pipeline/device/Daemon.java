@@ -107,11 +107,7 @@ public final class Daemon {
             monitor.onModeChange(offline::onModeChange);
             monitor.onModeChange(m -> status.poke());
             if (catchup != null) {
-                monitor.onModeChange(m -> {
-                    if (DeviceState.ONLINE.equals(m)) {
-                        catchupRef.kick();
-                    }
-                });
+                monitor.onModeChange(catchupRef::onModeChange);
             }
             start("heartbeat", monitor);
             stoppers.add(monitor::stop);
