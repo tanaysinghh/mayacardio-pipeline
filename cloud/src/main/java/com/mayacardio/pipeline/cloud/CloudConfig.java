@@ -41,9 +41,9 @@ public class CloudConfig {
                 hc.setPassword(parsed[2]);
             }
             hc.setMaximumPoolSize(pool);
-            hc.setMinimumIdle(1);
-            hc.setKeepaliveTime(60_000);
-            hc.setMaxLifetime(300_000);
+            hc.setMinimumIdle(0);
+            hc.setIdleTimeout(120_000);
+            hc.setMaxLifetime(240_000);
             hc.setConnectionTimeout(15_000);
         } else {
             Path p = Path.of(sqlitePath).toAbsolutePath();

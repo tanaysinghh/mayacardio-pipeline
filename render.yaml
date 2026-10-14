@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: mayacardio-pipeline-cloud
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/cloud/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: CLOUD_STORAGE
+        value: postgres
+      - key: CLOUD_JDBC_URL
+        sync: false
+      - key: CLOUD_API_TOKEN
+        generateValue: true
+      - key: CLOUD_JDBC_POOL
+        value: "3"

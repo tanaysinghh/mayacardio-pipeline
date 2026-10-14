@@ -1,4 +1,8 @@
-*
-!dist/*.jar
-!scripts/
-!docker/
+**/target/
+evidence/
+.git/
+dist2/
+**/*.db
+**/*.db-wal
+**/*.db-shm
+.idea/

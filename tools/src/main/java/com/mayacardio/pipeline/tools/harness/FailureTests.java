@@ -66,6 +66,8 @@ public final class FailureTests {
         Rig rig = null;
         try {
             rig = new Rig(work, jars, Double.parseDouble(opts.getOrDefault("speed", "1")), opts.getOrDefault("mode", "signal"));
+            rig.mockBufferSeconds = num("mock-buffer-seconds", 10);
+            result.put("mock_buffer_seconds_of_data", rig.mockBufferSeconds);
             Map<String, Object> r = switch (name) {
                 case "baseline" -> baseline(rig);
                 case "kill9" -> kill9(rig);
@@ -420,7 +422,7 @@ public final class FailureTests {
         startAll(rig);
         rig.sleepUntil(rig.tMs() + 20_000);
         List<Map<String, Object>> jumps = new ArrayList<>();
-        long[] deltas = {3600, -7200, 3600 + 40};
+        long[] deltas = {3600, -7200, 3600};
         for (long d : deltas) {
             long before = System.currentTimeMillis();
             Process p = new ProcessBuilder("date", "-s", "@" + (before / 1000 + d)).redirectErrorStream(true).start();

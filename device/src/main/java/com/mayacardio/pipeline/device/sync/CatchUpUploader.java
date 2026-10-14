@@ -37,6 +37,7 @@ public final class CatchUpUploader implements Runnable {
     private final AtomicLong backlogSamples = new AtomicLong();
     private volatile boolean running = true;
     private volatile boolean kick = true;
+    private volatile long kickedAtMono;
     private ExecutorService pool;
     private ThreadLocal<DeviceStore> readers;
     private final List<DeviceStore> openReaders = new ArrayList<>();
@@ -59,6 +60,7 @@ public final class CatchUpUploader implements Runnable {
     }
 
     public void kick() {
+        kickedAtMono = Clocks.monoMs();
         kick = true;
         synchronized (wake) {
             wake.notifyAll();
@@ -105,7 +107,8 @@ public final class CatchUpUploader implements Runnable {
                 synchronized (wake) {
                     if (!kick && running) {
                         try {
-                            wake.wait(IDLE_RECHECK_MS);
+                            boolean recentKick = Clocks.monoMs() - kickedAtMono < 15_000;
+                            wake.wait(recentKick ? 1000 : IDLE_RECHECK_MS);
                         } catch (InterruptedException e) {
                             break;
                         }
