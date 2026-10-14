@@ -83,6 +83,11 @@ public final class RangeSet implements Iterable<long[]> {
         return e != null && e.getValue() >= idx;
     }
 
+    public Long rangeEnd(long idx) {
+        Map.Entry<Long, Long> e = ranges.floorEntry(idx);
+        return e != null && e.getValue() >= idx ? e.getValue() : null;
+    }
+
     public boolean containsAll(long from, long to) {
         if (to < from) {
             return true;
