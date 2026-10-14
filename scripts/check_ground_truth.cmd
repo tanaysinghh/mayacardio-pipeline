@@ -1,10 +1,11 @@
 @echo off
 setlocal
+set HERE=%~dp0
 if "%~2"=="" goto usage
 if not "%~3"=="" goto usage
 set JAR=%PIPELINE_TOOLS_JAR%
-if "%JAR%"=="" set JAR=%~dp0..\dist\pipeline-tools.jar
-if not exist "%JAR%" set JAR=%~dp0..\tools\target\pipeline-tools.jar
+if "%JAR%"=="" set JAR=%HERE%..\dist\pipeline-tools.jar
+if not exist "%JAR%" set JAR=%HERE%..\tools\target\pipeline-tools.jar
 if not exist "%JAR%" (echo pipeline-tools.jar not found; build with mvnw -DskipTests package 1>&2 & exit /b 1)
 java -Xmx512m -jar "%JAR%" check-standin --export "%~1" --gt "%~2"
 exit /b %ERRORLEVEL%

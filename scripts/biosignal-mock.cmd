@@ -1,5 +1,6 @@
 @echo off
 setlocal
+set HERE=%~dp0
 set MODE=
 set SEED=
 set DURATION=
@@ -18,8 +19,8 @@ if "%DURATION%"=="" goto usage
 if "%PORT%"=="" goto usage
 if not "%MODE%"=="signal" if not "%MODE%"=="ramp" goto usage
 set JAR=%BIOSIGNAL_MOCK_JAR%
-if "%JAR%"=="" set JAR=%~dp0..\dist\biosignal-mock-standin.jar
-if not exist "%JAR%" set JAR=%~dp0..\mock-standin\target\biosignal-mock-standin.jar
+if "%JAR%"=="" set JAR=%HERE%..\dist\biosignal-mock-standin.jar
+if not exist "%JAR%" set JAR=%HERE%..\mock-standin\target\biosignal-mock-standin.jar
 if not exist "%JAR%" (echo biosignal-mock-standin.jar not found; build with mvnw -DskipTests package 1>&2 & exit /b 1)
 set /a CTL=%PORT%+1
 if not "%BIOSIGNAL_MOCK_CONTROL_PORT%"=="" set CTL=%BIOSIGNAL_MOCK_CONTROL_PORT%
