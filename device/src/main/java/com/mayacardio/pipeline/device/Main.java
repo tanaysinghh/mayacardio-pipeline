@@ -43,7 +43,14 @@ public final class Main {
                 System.exit(2);
             }
         }
-        DeviceConfig cfg = DeviceConfig.load(opts.containsKey("config") ? Path.of(opts.get("config")) : null);
+        DeviceConfig cfg;
+        try {
+            cfg = DeviceConfig.load(opts.containsKey("config") ? Path.of(opts.get("config")) : null);
+        } catch (IOException e) {
+            fail(e.getMessage());
+            System.exit(2);
+            return;
+        }
         int code;
         switch (args[0]) {
             case "run" -> {

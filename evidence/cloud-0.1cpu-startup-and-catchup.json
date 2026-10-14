@@ -1,0 +1,32 @@
+{
+  "measurement": "cloud service under Render free-tier-like limits",
+  "environment": "Docker Desktop (WSL2) on an x86-64 Windows 11 laptop; cloud image built from docker/cloud/Dockerfile; docker run --cpus 0.1 --memory 512m; PostgreSQL 16 in a container on the same Docker network (no internet latency, unlike Neon)",
+  "cold_start_definition": "docker run to the first HTTP 200 from /health, measured with curl polling every 0.2-0.5 s",
+  "cold_start_before_spring_boot_ms": [
+    114691,
+    107393,
+    105987
+  ],
+  "cold_start_before_note": "Spring Boot 4 reported 'Started in' 115/107/106 s; wall time to /health slightly higher",
+  "cold_start_spring_tuned_ms": 65904,
+  "cold_start_spring_tuned_flags": "SPRING_MAIN_LAZY_INITIALIZATION=true, -XX:TieredStopAtLevel=1 -XX:CICompilerCount=1 -Xshare:auto",
+  "cold_start_after_jdk_httpserver_ms": [
+    13918,
+    14396,
+    16330
+  ],
+  "rss_idle_after_mb": 38.7,
+  "rss_idle_before_mb": 125.4,
+  "rss_during_catchup_after_mb": 134.7,
+  "catchup_2h_backlog": {
+    "samples": 5762775,
+    "ms_restore_to_online": 1648,
+    "ms_restore_to_cloud_copy_complete": 156404,
+    "ms_restore_to_all_online_results": 221298,
+    "http_bytes_sent": 29991488,
+    "scenario_file": "backlog-cloud-0.1cpu.json"
+  },
+  "catchup_first_run_ms_to_copy_complete": 192085,
+  "catchup_first_run_note": "same scenario with the previous device build (no adaptive batches; per-sample rows); online results were not timed in that run",
+  "not_measured": "real Render shared vCPU, Render wake-up time after sleep, Neon network latency and scale-to-zero resume"
+}

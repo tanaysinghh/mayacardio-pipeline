@@ -1,58 +1,62 @@
-# Cloud deployment (free tier only)
+# Cloud deployment (free tier only, no card)
 
-Research done on 2026-10-14 by reading the providers' current public docs and pricing pages. No account was created. Free-tier terms change; re-read the linked pages before signing up.
+Provider terms were read on 2026-10-14 from the providers' public docs and pricing pages; no account was created. Free-tier terms change, so re-read them before signing up.
 
-## What the cloud service needs
+## What the service needs
 
-- An always-reachable HTTPS endpoint running one container (Java 17, ~250-350 MB heap, a single instance).
-- Durable storage that survives restarts and redeploys: about 10-12 MB per hour of data (both sensors, compressed segments) plus results. A judged run of a few hours fits in well under 1 GB.
-- No sleeping while the device is offline for up to 2 hours, or a cold start fast enough that the device's switch back to online still lands inside 10 seconds (see "Sleep risk" below).
+One container (Java 17, heap ≤ 320 MB, a single instance) behind HTTPS, and durable storage: about 11 MB of compressed segments per hour of data plus results. The service itself is stateless across restarts; everything lives in the database.
 
 ## Options checked
 
-| Provider | Free compute? | Card needed? | Persistent storage on free tier | Verdict |
+| Provider | Free compute | Card | Free durable storage | Verdict |
 |---|---|---|---|---|
-| Hugging Face Spaces | Docker Spaces now **require a paid plan** (only static and limited ZeroGPU Gradio Spaces are free); outbound ports limited to 80/443/8080 | — | disk not persistent | not usable |
-| Koyeb | pricing page shows no free compute tier (plans from $29/month); free Postgres limited to 5 h/month | — | — | not usable |
-| **Render** | free web service: 512 MB RAM, 0.1 CPU, 750 instance-hours/month (enough for one service 24/7); sleeps after **15 min without inbound traffic**, ~1 min to wake; may restart at any time | **No** (docs: without a payment method, overages suspend services instead of billing) | filesystem ephemeral; free Render Postgres **expires after 30 days** | **compute: top choice** |
-| **Neon** | free Postgres: 1 GB storage/project, 100 CU-hours/project/month (≈400 h at 0.25 CU), scales to zero after 5 min idle, 5 GB egress/project/month | **No** | durable | **database: top choice** |
-| Northflank Sandbox | "always-on, no sleeping", 2 free services + 1 free database | pricing FAQ describes card verification when a card is entered; could not confirm whether the sandbox requires one | yes (addon) | fallback if no card is required at sign-up |
-| Oracle Cloud Always Free | Arm VMs, always on | card verification at sign-up (general knowledge; the page could not be read in this session) | yes | not recommended under the "no card" rule |
-| Supabase | free Postgres 500 MB; projects pause after a week of inactivity | No | durable | database fallback |
+| Hugging Face Spaces | Docker Spaces now require a paid plan; outbound ports limited | — | no | not usable |
+| Koyeb | no free compute tier listed (plans from $29/month) | — | 5 h/month Postgres | not usable |
+| **Render** | free web service: 512 MB, 0.1 CPU, 750 instance-hours/month; **sleeps after 15 min without inbound requests, ~1 min to wake**; may restart at any time | **no** (without a payment method, overages suspend instead of billing) | ephemeral disk; free Postgres expires after 30 days | **compute: chosen** |
+| **Neon** | free Postgres: 1 GB/project, 100 CU-hours/month (≈400 h at 0.25 CU), scales to zero after 5 min idle, 5 GB egress/month | **no** | yes | **database: chosen** |
+| Northflank Sandbox | always on, 2 services + 1 database | its FAQ mentions card verification; not confirmed either way | yes | fallback if sign-up needs no card |
+| Supabase | free Postgres 500 MB, pauses after a week idle | no | yes | database fallback |
+| Oracle Cloud Always Free | always-on VMs | card verification at sign-up | yes | excluded by the no-card rule |
 
-## Recommended: Render (free web service) + Neon (free Postgres)
+## Measured under Render-like limits
 
-Both are card-free, so nothing can be charged. Limits and how they affect the assessment:
+Cloud image from `docker/cloud/Dockerfile`, `docker run --cpus 0.1 --memory 512m`, PostgreSQL 16 in a container on the same Docker network (so no internet latency). Details: `evidence/cloud-0.1cpu-startup-and-catchup.json`, `evidence/backlog-cloud-0.1cpu.json`.
 
-- **0.1 CPU on Render.** Live streaming is light. Catch-up after a 2-hour outage needs CPU: see the measured CPU cost in "Catch-up on a 0.1 CPU instance" below.
-- **Sleep risk.** Render sleeps after 15 minutes with no inbound request. While the device is online its 2-second heartbeat keeps the service awake. During a device outage longer than 15 minutes the service sleeps, and the first request after the network returns waits about a minute for it to wake. During that minute the device stays offline (it keeps saving and processing locally, nothing is lost), but the "back online within 10 s" criterion would be missed. **Mitigation (manual step):** a free external uptime monitor (for example UptimeRobot, 5-minute interval) calling `https://<service>.onrender.com/health` keeps it awake. This needs an account.
-- **Neon scale-to-zero** after 5 minutes idle: the first database query after an idle period waits for the compute to resume (usually well under a few seconds). The heartbeat does not touch the database, so it does not keep Neon awake. 100 CU-hours per month cover about 400 hours of active time at 0.25 CU, enough for an evaluation period but not for months of 24/7 streaming.
-- **Neon egress 5 GB/month.** The cloud reads segments back mainly after a restart (cache warm-up) and for exports; one hour of data is about 11 MB of stored segments.
+| | Spring Boot 4 (before) | JDK HTTP server (now) |
+|---|---|---|
+| Cold start, `docker run` → first `/health` 200 | 106-115 s (66 s with lazy init + C1-only JIT) | **14-16 s** |
+| Memory, idle | 125 MB | 39 MB |
+| 2-hour backlog (5.76 M samples, 30 MB on the wire): copy complete after network restore | — | **156 s** |
+| … all 7,200 online results computed | — | **221 s** |
+| Memory during catch-up | — | 135 MB |
 
-### Catch-up on a 0.1 CPU instance
+Because Spring Boot alone took longer than the whole switch-back budget at 0.1 CPU, the cloud now uses the JDK's built-in HTTP server with the same endpoints; storage, ingest and processing code are unchanged.
 
-In the local 2-hour-backlog run the cloud process used about 10 CPU-seconds to ingest 5.76 million samples and compute 7,200 windows (sampled from the process's CPU time before and after the catch-up). At 0.1 CPU that is roughly 100-120 s of wall time, plus database round trips to Neon (72 batches of ~200 segments, two at a time). The estimate is well inside 15 minutes, but it is an extrapolation: shared vCPUs on free tiers can be slower than the development machine, JIT warm-up on a tiny CPU takes longer, and the network link from the board sets a floor (26.8 MB at 1 Mbit/s is about 3.5 minutes). Verify on the real deployment.
+Not measured: Render's real shared vCPU, Render's wake-up time, Neon's network latency and resume from scale-to-zero. With Neon each batch adds a few database round trips over the internet, so expect catch-up to be slower than above; the device sends 40,000-index batches, two in parallel, and halves the batch size if a request times out.
 
-Live streaming needs about 4 KB/s of uploads plus one result per second; the cloud's steady-state CPU for that is small (a few percent of one core locally).
+## How mode switching behaves with a sleeping or cold cloud
 
-### Steps
+- **Healthy, awake cloud:** offline within ~6 s of a cut, online within ~2-4 s of restore (measured locally: 5.6 s and 1.0-1.5 s).
+- **Cloud asleep (Render free tier, after 15 minutes without requests):** while the device is online its 2-second heartbeat keeps the service awake. If the device was offline for more than 15 minutes, Render puts the service to sleep, and when the network returns the device stays **offline until the cloud answers `/health`**: Render's wake-up (~1 minute, from Render's docs) plus our 14-16 s start. During that time nothing is lost (the device keeps saving and processing locally), but the "back online within 10 s" criterion is missed. The first catch-up requests after an outage longer than a minute use a 120 s timeout, so they do not fail while the service warms up.
+- **Mitigation:** a free external uptime monitor (e.g. UptimeRobot) calling `https://<service>.onrender.com/health` every 5 minutes keeps the service awake during device outages. This needs an account (manual step).
+- Neon suspends its compute after 5 idle minutes; the first query after that waits for it to resume (usually under a few seconds). The heartbeat does not touch the database, so Neon can sleep while the device is offline.
 
-1. **Neon** (manual): sign up at neon.com with GitHub or email (no card), create a project in the region closest to the Render region you will pick (for example AWS us-east-1 with Render Oregon or Ohio; Frankfurt with Render Frankfurt), copy the connection string `postgresql://USER:PASSWORD@HOST/neondb?sslmode=require`.
-2. **Push this repository to GitHub** (manual; the repo has no remote yet).
-3. **Render** (manual): sign up (no card), New → Blueprint, select the repository. `render.yaml` defines one free Docker web service built from `docker/cloud/Dockerfile` with `/health` as health check. When asked, paste the Neon connection string into `CLOUD_JDBC_URL`. `CLOUD_API_TOKEN` is generated by Render; copy it from the service's Environment tab.
-   - Without blueprints: New → Web Service → the repo → Runtime Docker, Dockerfile path `docker/cloud/Dockerfile`, instance type Free, env vars `CLOUD_STORAGE=postgres`, `CLOUD_JDBC_URL=...`, `CLOUD_API_TOKEN=<a long random string>`.
-4. Check: `curl https://<service>.onrender.com/health` returns `{"status": "ok", ...}`; `curl -H "Authorization: Bearer $TOKEN" https://<service>.onrender.com/api/v1/sessions` returns `[]`.
-5. On the board: `sudo ./scripts/install.sh --cloud-url https://<service>.onrender.com --token $TOKEN` (or edit `/etc/pipeline/pipeline.conf` and `sudo systemctl restart pipeline`).
-6. Optional but recommended: an uptime monitor on `/health` every 5 minutes (see Sleep risk).
+## Steps (Render + Neon)
 
-## Fallback A: Northflank Sandbox + Neon
+1. **Neon:** sign up at neon.com (GitHub or email, no card), create a project in a region close to your Render region (e.g. AWS us-east-1 with Render Ohio/Virginia, Frankfurt with Render Frankfurt), copy the connection string `postgresql://USER:PASSWORD@HOST/neondb?sslmode=require`.
+2. **Render:** sign up (no card), *New → Blueprint*, pick the GitHub repository `tanaysinghh/mayacardio-pipeline`. `render.yaml` creates one free Docker web service from `docker/cloud/Dockerfile` with `/health` as health check. Paste the Neon string into `CLOUD_JDBC_URL` when asked. Render generates `CLOUD_API_TOKEN`; copy it from the service's *Environment* tab. The `PIPELINE_INTERPRET_*` variables must match the device's `interpret.*` keys (defaults match).
+   - Without a blueprint: *New → Web Service* → the repo → Docker, Dockerfile path `docker/cloud/Dockerfile`, instance type Free, environment `CLOUD_STORAGE=postgres`, `CLOUD_JDBC_URL=...`, `CLOUD_API_TOKEN=<long random string>`.
+3. **Check:** `curl https://<service>.onrender.com/health` → `{"status": "ok", ...}`; `curl -H "Authorization: Bearer $TOKEN" https://<service>.onrender.com/api/v1/sessions` → `[]`.
+4. **Board:** `sudo ./scripts/install.sh --cloud-url https://<service>.onrender.com --token $TOKEN` (or edit `/etc/pipeline/pipeline.conf`, then `sudo systemctl restart pipeline`).
+5. **Uptime monitor** on `/health` every 5 minutes (see above).
 
-Use only if sign-up does not require a card. Create a free service from the GitHub repo with Dockerfile `docker/cloud/Dockerfile`, port 8080, the same three environment variables, and a public HTTPS port. Sandbox services do not sleep, which removes the wake-up risk.
+Neon limits to keep in mind: 1 GB holds roughly 80-90 hours of data; 100 CU-hours cover about 400 active hours a month; `DELETE /api/v1/sessions/{id}` frees space.
 
-## Fallback B: any always-on machine you own
+## Fallbacks
 
-Run `docker build -f docker/cloud/Dockerfile -t pipeline-cloud . && docker run -d -p 8080:8080 -e CLOUD_API_TOKEN=... -e CLOUD_SQLITE_PATH=/data/cloud.db -v pipeline-cloud:/data pipeline-cloud` (embedded SQLite, no database account needed) and expose it over HTTPS with a free tunnel (for example a Cloudflare Tunnel, which needs a free Cloudflare account). This is free and has no sleep limit, but it is not a third-party cloud and depends on that machine staying up.
+- **Northflank Sandbox + Neon**, only if sign-up needs no card: free service from the repo, Dockerfile `docker/cloud/Dockerfile`, port 8080, the same environment variables. Sandbox services do not sleep.
+- **Any always-on machine you control:** `docker build -f docker/cloud/Dockerfile -t pipeline-cloud . && docker run -d -p 8080:8080 -e CLOUD_API_TOKEN=... -e CLOUD_SQLITE_PATH=/data/cloud.db -v pipeline-cloud:/data pipeline-cloud` (embedded SQLite), exposed over HTTPS with a free tunnel (e.g. Cloudflare Tunnel, needs a free account). No sleep limit, but it is not a third-party cloud.
 
-## Switching storage backends
+## Storage backends
 
-The cloud reads `CLOUD_STORAGE` (`sqlite` or `postgres`). For any other PostgreSQL-compatible free provider only `CLOUD_JDBC_URL` changes (a `postgres://user:pass@host/db` URL is accepted as given by most providers). A different kind of store would implement `com.mayacardio.pipeline.cloud.store.CloudStore`.
+`CLOUD_STORAGE=sqlite|postgres`. For another PostgreSQL-compatible provider only `CLOUD_JDBC_URL` changes (`postgres://user:pass@host/db` URLs are accepted as given). Another kind of store would implement `cloud/src/main/java/com/mayacardio/pipeline/cloud/store/CloudStore.java`.

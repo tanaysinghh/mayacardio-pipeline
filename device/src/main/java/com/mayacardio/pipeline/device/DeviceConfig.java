@@ -23,7 +23,10 @@ public final class DeviceConfig {
     public static DeviceConfig load(Path explicit) throws IOException {
         Properties p = new Properties();
         Path file = explicit;
-        if (file == null && System.getenv("PIPELINE_CONFIG") != null) {
+        if (file != null && !Files.isRegularFile(file)) {
+            throw new IOException("config file not found: " + file);
+        }
+        if (file == null && System.getenv("PIPELINE_CONFIG") != null && Files.isRegularFile(Path.of(System.getenv("PIPELINE_CONFIG")))) {
             file = Path.of(System.getenv("PIPELINE_CONFIG"));
         }
         if (file == null && Files.isRegularFile(DEFAULT_CONFIG)) {

@@ -448,23 +448,59 @@ public final class FailureTests {
         return out;
     }
 
+    static Path findLibFaketime() {
+        for (String dir : new String[]{"/usr/lib/x86_64-linux-gnu/faketime", "/usr/lib/aarch64-linux-gnu/faketime", "/usr/lib/faketime"}) {
+            Path p = Path.of(dir, "libfaketime.so.1");
+            if (Files.exists(p)) {
+                return p;
+            }
+        }
+        return null;
+    }
+
     private Map<String, Object> clock(Rig rig) throws Exception {
-        if (!opts.containsKey("allow-clock-change")) {
-            return Map.of("pass", false, "skipped", "needs --allow-clock-change on Linux with CAP_SYS_TIME (changes the system clock)");
+        boolean faketime = "faketime".equals(opts.get("clock-method"));
+        if (!faketime && !opts.containsKey("allow-clock-change")) {
+            return Map.of("pass", false, "skipped", "use --clock-method faketime (libfaketime, affects only the test's processes), "
+                    + "or --allow-clock-change on a throwaway Linux VM with CAP_SYS_TIME (changes the kernel clock)");
+        }
+        Path rc = rig.work.resolve("faketime.rc");
+        if (faketime) {
+            Path lib = findLibFaketime();
+            if (lib == null) {
+                return Map.of("pass", false, "skipped", "libfaketime not found (apt-get install faketime)");
+            }
+            Files.writeString(rc, "+0" + System.lineSeparator());
+            rig.processEnv.put("LD_PRELOAD", lib.toString());
+            rig.processEnv.put("FAKETIME_TIMESTAMP_FILE", rc.toString());
+            rig.processEnv.put("FAKETIME_NO_CACHE", "1");
+            rig.processEnv.put("DONT_FAKE_MONOTONIC", "1");
         }
         startAll(rig);
         rig.sleepUntil(rig.tMs() + 20_000);
         List<Map<String, Object>> jumps = new ArrayList<>();
         long[] deltas = {3600, -7200, 3600};
+        long offset = 0;
         for (long d : deltas) {
-            long before = System.currentTimeMillis();
-            Process p = new ProcessBuilder("date", "-s", "@" + (before / 1000 + d)).redirectErrorStream(true).start();
-            String outp = new String(p.getInputStream().readAllBytes()).trim();
-            int code = p.waitFor();
-            rig.event("clock_jump", d + " s -> exit " + code + " " + outp);
             Map<String, Object> j = new LinkedHashMap<>();
             j.put("delta_seconds", d);
-            j.put("exit", code);
+            offset += d;
+            if (faketime) {
+                Files.writeString(rc, (offset >= 0 ? "+" : "") + offset + System.lineSeparator());
+                j.put("exit", 0);
+                rig.event("clock_jump", d + " s (libfaketime offset now " + offset + " s)");
+                Thread.sleep(2500);
+                JsonNode st = rig.status();
+                long seen = java.time.Instant.parse(st.get("updated_at").asText()).toEpochMilli() - System.currentTimeMillis();
+                j.put("device_wall_clock_offset_seen_s", Math.round(seen / 1000.0));
+            } else {
+                long before = System.currentTimeMillis();
+                Process p = new ProcessBuilder("date", "-s", "@" + (before / 1000 + d)).redirectErrorStream(true).start();
+                String outp = new String(p.getInputStream().readAllBytes()).trim();
+                int code = p.waitFor();
+                rig.event("clock_jump", d + " s -> exit " + code + " " + outp);
+                j.put("exit", code);
+            }
             jumps.add(j);
             long switched = rig.waitMode("offline", 20_000);
             j.put("spurious_offline_switch_ms", switched);
@@ -475,10 +511,21 @@ public final class FailureTests {
         boolean noSwitch = jumps.stream().allMatch(j -> ((Number) j.get("spurious_offline_switch_ms")).longValue() < 0);
         boolean jumped = jumps.stream().allMatch(j -> ((Number) j.get("exit")).intValue() == 0);
         Map<String, Object> out = new LinkedHashMap<>();
+        long expected = 0;
+        boolean effective = true;
+        for (Map<String, Object> j : jumps) {
+            expected += ((Number) j.get("delta_seconds")).longValue();
+            if (j.containsKey("device_wall_clock_offset_seen_s")) {
+                effective &= Math.abs(((Number) j.get("device_wall_clock_offset_seen_s")).longValue() - expected) <= 5;
+            }
+        }
+        out.put("method", faketime ? "libfaketime on the mock, cloud and device processes (wall clock only; monotonic clock untouched; kernel clock untouched)"
+                : "date -s on the kernel clock");
         out.put("jumps", jumps);
+        out.put("clock_change_took_effect", effective);
         out.put("no_spurious_mode_switch", noSwitch);
         out.put("checks", verify);
-        out.put("pass", jumped && noSwitch && Boolean.TRUE.equals(verify.get("pass")) && noLosses(verify));
+        out.put("pass", jumped && effective && noSwitch && Boolean.TRUE.equals(verify.get("pass")) && noLosses(verify));
         return out;
     }
 }

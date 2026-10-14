@@ -1,0 +1,783 @@
+{
+  "scenario" : "backlog-cloud-0.1cpu",
+  "started_at" : "2026-10-14T14:16:06.646672300Z",
+  "environment" : {
+    "os" : "Windows 11 10.0",
+    "arch" : "amd64",
+    "cpus_visible" : 24,
+    "java" : "Eclipse Adoptium 21.0.5",
+    "container_hint" : "none",
+    "mock" : "mock-standin (NOT the official biosignal-mock)",
+    "cloud" : "local cloud jar (SQLite) behind an in-process TCP proxy used to cut the network"
+  },
+  "external_cloud" : "http://127.0.0.1:18090",
+  "external_cloud_note" : "cloud image in docker --cpus 0.1 --memory 512m, PostgreSQL 16 container on the same Docker network (no internet latency)",
+  "mock_buffer_seconds_of_data" : 200,
+  "simulated_outage_data_minutes" : 120,
+  "generation_speed_while_offline" : 20.0,
+  "samples_backlog_at_restore" : 5762775,
+  "ms_restore_to_online" : 1648,
+  "ms_restore_to_cloud_copy_complete" : 156404,
+  "ms_restore_to_cloud_online_results_complete" : 221298,
+  "http_bytes_sent_during_catchup" : 29991488,
+  "generation_progress" : [ {
+    "t_ms" : 22367,
+    "mock_generated" : 8871,
+    "device_next_index_1" : 8763,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 37369,
+    "mock_generated" : 128887,
+    "device_next_index_1" : 126225,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 52387,
+    "mock_generated" : 249015,
+    "device_next_index_1" : 239148,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 67402,
+    "mock_generated" : 369145,
+    "device_next_index_1" : 357961,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 82423,
+    "mock_generated" : 489320,
+    "device_next_index_1" : 480670,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 97429,
+    "mock_generated" : 609355,
+    "device_next_index_1" : 599309,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 112448,
+    "mock_generated" : 729498,
+    "device_next_index_1" : 722023,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 127470,
+    "mock_generated" : 849676,
+    "device_next_index_1" : 839496,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 142483,
+    "mock_generated" : 969790,
+    "device_next_index_1" : 962297,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 157491,
+    "mock_generated" : 1089859,
+    "device_next_index_1" : 1083113,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 172499,
+    "mock_generated" : 1209919,
+    "device_next_index_1" : 1203858,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 187505,
+    "mock_generated" : 1329966,
+    "device_next_index_1" : 1324088,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 202514,
+    "mock_generated" : 1450048,
+    "device_next_index_1" : 1443072,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 217519,
+    "mock_generated" : 1570087,
+    "device_next_index_1" : 1562309,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 232524,
+    "mock_generated" : 1690115,
+    "device_next_index_1" : 1685099,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 247537,
+    "mock_generated" : 1810226,
+    "device_next_index_1" : 1803050,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 262541,
+    "mock_generated" : 1930263,
+    "device_next_index_1" : 1925469,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 277551,
+    "mock_generated" : 2050334,
+    "device_next_index_1" : 2047991,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 292558,
+    "mock_generated" : 2170390,
+    "device_next_index_1" : 2167310,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 307562,
+    "mock_generated" : 2290426,
+    "device_next_index_1" : 2286490,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 322575,
+    "mock_generated" : 2410520,
+    "device_next_index_1" : 2407143,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 337588,
+    "mock_generated" : 2530628,
+    "device_next_index_1" : 2529537,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 352601,
+    "mock_generated" : 2650736,
+    "device_next_index_1" : 2648222,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 367605,
+    "mock_generated" : 2770778,
+    "device_next_index_1" : 2762193,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 382621,
+    "mock_generated" : 2890889,
+    "device_next_index_1" : 2883483,
+    "pending_in_memory" : 0
+  } ],
+  "drain_progress" : [ {
+    "t_ms_after_restore" : 1657,
+    "backlog" : 5768984,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 3669,
+    "backlog" : 5770586,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 5678,
+    "backlog" : 5772190,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 7685,
+    "backlog" : 5765793,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 9696,
+    "backlog" : 5767390,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 11704,
+    "backlog" : 5768996,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 13708,
+    "backlog" : 5770598,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 15715,
+    "backlog" : 5772199,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 17735,
+    "backlog" : 5773801,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 19750,
+    "backlog" : 5775402,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 21761,
+    "backlog" : 5768206,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 23769,
+    "backlog" : 5768206,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 25780,
+    "backlog" : 5768206,
+    "catchup_backlog_samples" : 5768206
+  }, {
+    "t_ms_after_restore" : 27788,
+    "backlog" : 5768206,
+    "catchup_backlog_samples" : 5768206
+  }, {
+    "t_ms_after_restore" : 29799,
+    "backlog" : 5770008,
+    "catchup_backlog_samples" : 5768206
+  }, {
+    "t_ms_after_restore" : 31807,
+    "backlog" : 5691615,
+    "catchup_backlog_samples" : 5688207
+  }, {
+    "t_ms_after_restore" : 33819,
+    "backlog" : 5608608,
+    "catchup_backlog_samples" : 5608207
+  }, {
+    "t_ms_after_restore" : 35825,
+    "backlog" : 5609407,
+    "catchup_backlog_samples" : 5608207
+  }, {
+    "t_ms_after_restore" : 37836,
+    "backlog" : 5531012,
+    "catchup_backlog_samples" : 5528207
+  }, {
+    "t_ms_after_restore" : 39846,
+    "backlog" : 5449411,
+    "catchup_backlog_samples" : 5448207
+  }, {
+    "t_ms_after_restore" : 41859,
+    "backlog" : 5450212,
+    "catchup_backlog_samples" : 5448207
+  }, {
+    "t_ms_after_restore" : 43868,
+    "backlog" : 5371012,
+    "catchup_backlog_samples" : 5368207
+  }, {
+    "t_ms_after_restore" : 45875,
+    "backlog" : 5289406,
+    "catchup_backlog_samples" : 5288207
+  }, {
+    "t_ms_after_restore" : 47892,
+    "backlog" : 5210208,
+    "catchup_backlog_samples" : 5208207
+  }, {
+    "t_ms_after_restore" : 49904,
+    "backlog" : 5129412,
+    "catchup_backlog_samples" : 5128207
+  }, {
+    "t_ms_after_restore" : 51913,
+    "backlog" : 5129409,
+    "catchup_backlog_samples" : 5128207
+  }, {
+    "t_ms_after_restore" : 53923,
+    "backlog" : 5050211,
+    "catchup_backlog_samples" : 5048207
+  }, {
+    "t_ms_after_restore" : 55935,
+    "backlog" : 4969407,
+    "catchup_backlog_samples" : 4968207
+  }, {
+    "t_ms_after_restore" : 57937,
+    "backlog" : 4890210,
+    "catchup_backlog_samples" : 4888207
+  }, {
+    "t_ms_after_restore" : 59948,
+    "backlog" : 4810211,
+    "catchup_backlog_samples" : 4808207
+  }, {
+    "t_ms_after_restore" : 61953,
+    "backlog" : 4810211,
+    "catchup_backlog_samples" : 4808207
+  }, {
+    "t_ms_after_restore" : 63963,
+    "backlog" : 4649807,
+    "catchup_backlog_samples" : 4648207
+  }, {
+    "t_ms_after_restore" : 65971,
+    "backlog" : 4649409,
+    "catchup_backlog_samples" : 4648207
+  }, {
+    "t_ms_after_restore" : 67980,
+    "backlog" : 4530611,
+    "catchup_backlog_samples" : 4568207
+  }, {
+    "t_ms_after_restore" : 69992,
+    "backlog" : 4489009,
+    "catchup_backlog_samples" : 4488207
+  }, {
+    "t_ms_after_restore" : 72001,
+    "backlog" : 4410611,
+    "catchup_backlog_samples" : 4408207
+  }, {
+    "t_ms_after_restore" : 74006,
+    "backlog" : 4329810,
+    "catchup_backlog_samples" : 4328207
+  }, {
+    "t_ms_after_restore" : 76015,
+    "backlog" : 4250608,
+    "catchup_backlog_samples" : 4248207
+  }, {
+    "t_ms_after_restore" : 78027,
+    "backlog" : 4170611,
+    "catchup_backlog_samples" : 4168207
+  }, {
+    "t_ms_after_restore" : 80040,
+    "backlog" : 4089008,
+    "catchup_backlog_samples" : 4088207
+  }, {
+    "t_ms_after_restore" : 82047,
+    "backlog" : 3929007,
+    "catchup_backlog_samples" : 3928207
+  }, {
+    "t_ms_after_restore" : 84057,
+    "backlog" : 3929007,
+    "catchup_backlog_samples" : 3928207
+  }, {
+    "t_ms_after_restore" : 86064,
+    "backlog" : 3768605,
+    "catchup_backlog_samples" : 3768207
+  }, {
+    "t_ms_after_restore" : 88082,
+    "backlog" : 3768608,
+    "catchup_backlog_samples" : 3768207
+  }, {
+    "t_ms_after_restore" : 90091,
+    "backlog" : 3770209,
+    "catchup_backlog_samples" : 3768207
+  }, {
+    "t_ms_after_restore" : 92097,
+    "backlog" : 3609808,
+    "catchup_backlog_samples" : 3608207
+  }, {
+    "t_ms_after_restore" : 94106,
+    "backlog" : 3609810,
+    "catchup_backlog_samples" : 3608207
+  }, {
+    "t_ms_after_restore" : 96116,
+    "backlog" : 3449008,
+    "catchup_backlog_samples" : 3448207
+  }, {
+    "t_ms_after_restore" : 98131,
+    "backlog" : 3449007,
+    "catchup_backlog_samples" : 3448207
+  }, {
+    "t_ms_after_restore" : 100140,
+    "backlog" : 3289008,
+    "catchup_backlog_samples" : 3288207
+  }, {
+    "t_ms_after_restore" : 102151,
+    "backlog" : 3129011,
+    "catchup_backlog_samples" : 3128207
+  }, {
+    "t_ms_after_restore" : 104158,
+    "backlog" : 3049010,
+    "catchup_backlog_samples" : 3048207
+  }, {
+    "t_ms_after_restore" : 106165,
+    "backlog" : 2969808,
+    "catchup_backlog_samples" : 2968207
+  }, {
+    "t_ms_after_restore" : 108180,
+    "backlog" : 2889408,
+    "catchup_backlog_samples" : 2888207
+  }, {
+    "t_ms_after_restore" : 110184,
+    "backlog" : 2729410,
+    "catchup_backlog_samples" : 2728207
+  }, {
+    "t_ms_after_restore" : 112187,
+    "backlog" : 2729409,
+    "catchup_backlog_samples" : 2728207
+  }, {
+    "t_ms_after_restore" : 114195,
+    "backlog" : 2570207,
+    "catchup_backlog_samples" : 2568207
+  }, {
+    "t_ms_after_restore" : 116209,
+    "backlog" : 2408607,
+    "catchup_backlog_samples" : 2408207
+  }, {
+    "t_ms_after_restore" : 118211,
+    "backlog" : 2329410,
+    "catchup_backlog_samples" : 2328207
+  }, {
+    "t_ms_after_restore" : 120219,
+    "backlog" : 2249407,
+    "catchup_backlog_samples" : 2248207
+  }, {
+    "t_ms_after_restore" : 122224,
+    "backlog" : 2169407,
+    "catchup_backlog_samples" : 2168207
+  }, {
+    "t_ms_after_restore" : 124236,
+    "backlog" : 2009409,
+    "catchup_backlog_samples" : 2008207
+  }, {
+    "t_ms_after_restore" : 126244,
+    "backlog" : 1848605,
+    "catchup_backlog_samples" : 1848207
+  }, {
+    "t_ms_after_restore" : 128255,
+    "backlog" : 1769411,
+    "catchup_backlog_samples" : 1768207
+  }, {
+    "t_ms_after_restore" : 130266,
+    "backlog" : 1689409,
+    "catchup_backlog_samples" : 1688207
+  }, {
+    "t_ms_after_restore" : 132280,
+    "backlog" : 1529409,
+    "catchup_backlog_samples" : 1528207
+  }, {
+    "t_ms_after_restore" : 134288,
+    "backlog" : 1449409,
+    "catchup_backlog_samples" : 1448207
+  }, {
+    "t_ms_after_restore" : 136294,
+    "backlog" : 1289407,
+    "catchup_backlog_samples" : 1288207
+  }, {
+    "t_ms_after_restore" : 138301,
+    "backlog" : 1209022,
+    "catchup_backlog_samples" : 1208207
+  }, {
+    "t_ms_after_restore" : 140313,
+    "backlog" : 1049031,
+    "catchup_backlog_samples" : 1048207
+  }, {
+    "t_ms_after_restore" : 142330,
+    "backlog" : 889011,
+    "catchup_backlog_samples" : 888207
+  }, {
+    "t_ms_after_restore" : 144343,
+    "backlog" : 729023,
+    "catchup_backlog_samples" : 728207
+  }, {
+    "t_ms_after_restore" : 146351,
+    "backlog" : 569025,
+    "catchup_backlog_samples" : 568207
+  }, {
+    "t_ms_after_restore" : 148355,
+    "backlog" : 409021,
+    "catchup_backlog_samples" : 408207
+  }, {
+    "t_ms_after_restore" : 150373,
+    "backlog" : 329854,
+    "catchup_backlog_samples" : 328207
+  }, {
+    "t_ms_after_restore" : 152386,
+    "backlog" : 248824,
+    "catchup_backlog_samples" : 248207
+  }, {
+    "t_ms_after_restore" : 154390,
+    "backlog" : 89826,
+    "catchup_backlog_samples" : 88207
+  }, {
+    "t_ms_after_restore" : 156404,
+    "backlog" : 409,
+    "catchup_backlog_samples" : 0
+  } ],
+  "note" : "cloud runs on the same machine; network bandwidth is not limited. Bytes sent are reported so time at a given bandwidth can be estimated.",
+  "checks" : {
+    "2a49b7fe" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "2a49b7fe",
+        "generated_per_sensor" : 3009414,
+        "ground_truth_note" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator",
+        "checked_up_to_index" : 2983448,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 2983654,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 2983861,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "compared_up_to_index" : 2981848,
+        "sensor_1" : {
+          "device_samples" : 2983654,
+          "cloud_samples" : 2984270,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 2983861,
+          "cloud_samples" : 2996692,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 0,
+        "cloud_losses" : 0,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "offline" : {
+          "results" : 7214,
+          "matched" : 7214,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "online" : {
+          "results" : 7514,
+          "matched" : 7459,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 55
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 14728,
+      "device_session_summary" : {
+        "session" : "2a49b7fe",
+        "first_seen" : "2026-10-14T14:16:07.438858600Z",
+        "closed" : false,
+        "close_reason" : null,
+        "saved_1" : 2983449,
+        "next_index_1" : 2983449,
+        "saved_2" : 2983452,
+        "next_index_2" : 2983452,
+        "loss_ranges" : 0,
+        "cloud_complete" : false
+      }
+    },
+    "final_status" : {
+      "mode" : "online",
+      "daemon" : "running",
+      "pid" : 35600,
+      "session" : "2a49b7fe",
+      "samples_saved" : 5966496,
+      "samples_in_cloud" : 5966085,
+      "backlog" : 411,
+      "current_session" : {
+        "saved_1" : 2983245,
+        "saved_2" : 2983251,
+        "cloud_1" : 2983040,
+        "cloud_2" : 2983045,
+        "next_index_1" : 2983245,
+        "next_index_2" : 2983251,
+        "closed" : false
+      },
+      "catchup_backlog_samples" : 0,
+      "loss_ranges" : 0,
+      "mode_since" : "2026-10-14T14:22:30.954027300Z",
+      "mock_connected" : true,
+      "disk_full" : false,
+      "pending_in_memory" : 0,
+      "max_commit_gap_ms" : [ 531, 544 ],
+      "replies_ok" : 16202,
+      "corrupt_replies" : 0,
+      "timeouts" : 0,
+      "reconnects" : 1,
+      "stale_replies" : 0,
+      "storage_errors" : 8,
+      "offline_windows" : 7214,
+      "uploaded_samples" : 5966085,
+      "http_bytes_sent" : 30179719,
+      "last_error" : "storage: [SQLITE_BUSY] The database file is locked (database is locked)",
+      "updated_at" : "2026-10-14T14:26:20.591192400Z"
+    },
+    "pass" : true
+  },
+  "pass" : true,
+  "timeline" : [ {
+    "t_ms" : 34,
+    "wall" : "2026-10-14T14:16:06.684058700Z",
+    "event" : "external_cloud",
+    "detail" : "http://127.0.0.1:18090 via proxy 57271"
+  }, {
+    "t_ms" : 262,
+    "wall" : "2026-10-14T14:16:06.911605100Z",
+    "event" : "mock_started",
+    "detail" : "pid 35192"
+  }, {
+    "t_ms" : 271,
+    "wall" : "2026-10-14T14:16:06.920607200Z",
+    "event" : "device_started",
+    "detail" : "pid 35600"
+  }, {
+    "t_ms" : 2873,
+    "wall" : "2026-10-14T14:16:09.522871800Z",
+    "event" : "device_online",
+    "detail" : "after 2599 ms"
+  }, {
+    "t_ms" : 17879,
+    "wall" : "2026-10-14T14:16:24.529023Z",
+    "event" : "network_cut"
+  }, {
+    "t_ms" : 22353,
+    "wall" : "2026-10-14T14:16:29.002791500Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 1.0, \"started_at_ms\": 1791987366917, \"generated\": 8833, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 22365,
+    "wall" : "2026-10-14T14:16:29.015004800Z",
+    "event" : "mock_speed",
+    "detail" : "speed 20.0 -> {\"ok\": true, \"head\": 8837}"
+  }, {
+    "t_ms" : 22366,
+    "wall" : "2026-10-14T14:16:29.015780200Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 8871, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 37368,
+    "wall" : "2026-10-14T14:16:44.018348100Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 128887, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 52385,
+    "wall" : "2026-10-14T14:16:59.034666400Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 249015, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 67400,
+    "wall" : "2026-10-14T14:17:14.050074500Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 369145, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 82422,
+    "wall" : "2026-10-14T14:17:29.072314Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 489320, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 97427,
+    "wall" : "2026-10-14T14:17:44.076635100Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 609355, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 112445,
+    "wall" : "2026-10-14T14:17:59.094947300Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 729498, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 127467,
+    "wall" : "2026-10-14T14:18:14.116187700Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 849676, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 142481,
+    "wall" : "2026-10-14T14:18:29.130859400Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 969790, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 157490,
+    "wall" : "2026-10-14T14:18:44.139368600Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 1089859, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 172497,
+    "wall" : "2026-10-14T14:18:59.146882700Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 1209919, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 187503,
+    "wall" : "2026-10-14T14:19:14.153282900Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 1329966, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 202513,
+    "wall" : "2026-10-14T14:19:29.163016200Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 1450048, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 217518,
+    "wall" : "2026-10-14T14:19:44.167430Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 1570087, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 232522,
+    "wall" : "2026-10-14T14:19:59.171207600Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 1690115, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 247536,
+    "wall" : "2026-10-14T14:20:14.185206500Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 1810226, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 262540,
+    "wall" : "2026-10-14T14:20:29.190037100Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 1930263, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 277549,
+    "wall" : "2026-10-14T14:20:44.199253700Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 2050334, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 292556,
+    "wall" : "2026-10-14T14:20:59.205546600Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 2170390, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 307561,
+    "wall" : "2026-10-14T14:21:14.210190300Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 2290426, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 322573,
+    "wall" : "2026-10-14T14:21:29.222512Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 2410520, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 337586,
+    "wall" : "2026-10-14T14:21:44.236163500Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 2530628, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 352599,
+    "wall" : "2026-10-14T14:21:59.248401500Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 2650736, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 367605,
+    "wall" : "2026-10-14T14:22:14.254323100Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 2770778, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 382619,
+    "wall" : "2026-10-14T14:22:29.268696500Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"2a49b7fe\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791987366917, \"generated\": 2890889, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 382623,
+    "wall" : "2026-10-14T14:22:29.272696800Z",
+    "event" : "mock_speed",
+    "detail" : "speed 1 -> {\"ok\": true, \"head\": 2890922}"
+  }, {
+    "t_ms" : 382749,
+    "wall" : "2026-10-14T14:22:29.398807900Z",
+    "event" : "network_restored"
+  }, {
+    "t_ms" : 539146,
+    "wall" : "2026-10-14T14:25:05.795680600Z",
+    "event" : "cloud_copy_complete",
+    "detail" : "156404 ms after restore"
+  }, {
+    "t_ms" : 604040,
+    "wall" : "2026-10-14T14:26:10.689932900Z",
+    "event" : "cloud_online_results_complete",
+    "detail" : "221298 ms after restore"
+  } ],
+  "finished_at" : "2026-10-14T14:27:53.509674300Z",
+  "raw_dir" : "../mayacardio-pipeline-notes/raw-evidence/cloud-throttled2/work/backlog-cloud-0.1cpu-2026-10-14T14-16-06"
+}

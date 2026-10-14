@@ -52,6 +52,7 @@ public final class Rig implements AutoCloseable {
     int mockBufferSeconds = 10;
     String externalCloudUrl;
     String mockCmdTemplate;
+    final Map<String, String> processEnv = new LinkedHashMap<>();
     String checkerCmdTemplate;
     String externalCloudToken;
     int deviceStarts;
@@ -109,7 +110,7 @@ public final class Rig implements AutoCloseable {
         Map<String, String> env = Map.of("CLOUD_SQLITE_PATH", work.resolve("cloud-data/cloud.db").toString(),
                 "CLOUD_API_TOKEN", TOKEN, "PORT", Integer.toString(cloudPort));
         cloud = new Proc("cloud", List.of(java, "-Xmx512m", "-jar", jars.resolve("cloud-1.0.0-all.jar").toString()),
-                work.resolve("cloud.log"), env).start();
+                work.resolve("cloud.log"), withProcessEnv(env)).start();
         long deadline = System.nanoTime() + 60_000_000_000L;
         while (System.nanoTime() < deadline) {
             if (httpOk("http://127.0.0.1:" + cloudPort + "/health")) {
@@ -148,6 +149,15 @@ public final class Rig implements AutoCloseable {
         }
     }
 
+    Map<String, String> withProcessEnv(Map<String, String> base) {
+        Map<String, String> m = new LinkedHashMap<>();
+        if (base != null) {
+            m.putAll(base);
+        }
+        m.putAll(processEnv);
+        return m;
+    }
+
     public boolean externalMock() {
         return mockCmdTemplate != null;
     }
@@ -160,7 +170,7 @@ public final class Rig implements AutoCloseable {
     public void startMock() throws Exception {
         if (externalMock()) {
             mock = new Proc("mock", shell(mockCmdTemplate.replace("{port}", Integer.toString(mockPort))),
-                    work.resolve("mock.log"), null).start();
+                    work.resolve("mock.log"), withProcessEnv(null)).start();
             mockStarts++;
             long deadline = System.nanoTime() + 60_000_000_000L;
             while (System.nanoTime() < deadline) {
@@ -177,7 +187,7 @@ public final class Rig implements AutoCloseable {
                 "--mode", mode, "--seed", "7", "--duration", "0", "--port", Integer.toString(mockPort),
                 "--control-port", Integer.toString(mockCtl), "--speed", Double.toString(speed),
                 "--buffer-seconds", Integer.toString(mockBufferSeconds),
-                "--ground-truth-dir", gtDir.toString()), work.resolve("mock.log"), null).start();
+                "--ground-truth-dir", gtDir.toString()), work.resolve("mock.log"), withProcessEnv(null)).start();
         mockStarts++;
         long deadline = System.nanoTime() + 30_000_000_000L;
         while (System.nanoTime() < deadline) {
@@ -209,7 +219,7 @@ public final class Rig implements AutoCloseable {
     public void startDevice() throws Exception {
         writeDeviceConf();
         device = new Proc("device", List.of(java, "-Xmx256m", "-jar", jars.resolve("device-1.0.0-all.jar").toString(),
-                "run", "--config", conf.toString()), work.resolve("device.log"), null).start();
+                "run", "--config", conf.toString()), work.resolve("device.log"), withProcessEnv(null)).start();
         deviceStarts++;
         event("device_started", "pid " + device.pid());
     }

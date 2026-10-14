@@ -1,7 +1,7 @@
 FROM eclipse-temurin:17-jre-jammy
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 procps iproute2 \
+    && apt-get install -y --no-install-recommends procps iproute2 faketime \
     && rm -rf /var/lib/apt/lists/*
 
 COPY dist/device-1.0.0-all.jar dist/biosignal-mock-standin.jar dist/pipeline-tools.jar dist/cloud-1.0.0-all.jar /opt/pipeline/lib/
