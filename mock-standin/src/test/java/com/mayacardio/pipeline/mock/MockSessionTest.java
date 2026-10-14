@@ -152,4 +152,23 @@ class MockSessionTest {
             }
         }
     }
+
+    @Test
+    void muteDropsRequestsForOneSensorOnly() throws Exception {
+        try (MockServer server = new MockServer(new Generator("ramp", 7), 10.0, 0, 10, 0, -1, null)) {
+            server.start();
+            try (Socket sock = new Socket("127.0.0.1", server.port())) {
+                sock.setSoTimeout(500);
+                BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream(), StandardCharsets.UTF_8));
+                PrintWriter out = new PrintWriter(sock.getOutputStream(), true, StandardCharsets.UTF_8);
+                server.command("mute 2 1");
+                out.println("{\"cmd\": \"read\", \"sensor\": 2, \"from_index\": 0}");
+                out.println("{\"cmd\": \"read\", \"sensor\": 1, \"from_index\": 0}");
+                assertEquals(1, M.readTree(in.readLine()).get("sensor").asInt());
+                Thread.sleep(1100);
+                out.println("{\"cmd\": \"read\", \"sensor\": 2, \"from_index\": 0}");
+                assertEquals(2, M.readTree(in.readLine()).get("sensor").asInt());
+            }
+        }
+    }
 }

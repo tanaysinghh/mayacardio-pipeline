@@ -207,6 +207,23 @@ class CollectorFaultTest {
     }
 
     @Test
+    void unansweredSensorDoesNotStarveTheOther() throws Exception {
+        startMock();
+        Runner r = start();
+        sleep(800);
+        server.command("mute 2 4");
+        sleep(6000);
+        String sid = r.state.sessionId();
+        r.stop();
+        Verdict v = verify(sid, new Generator("ramp", 7));
+        for (LossRange l : v.losses()) {
+            assertEquals(2, l.sensor(), "sensor 1 must not lose data: " + l);
+            assertEquals("buffer_overflow", l.reason());
+        }
+        assertTrue(v.lostByReason().containsKey("buffer_overflow"), v.lostByReason().toString());
+    }
+
+    @Test
     void sensorOutageIsRecordedExactly() throws Exception {
         startMock();
         Runner r = start();

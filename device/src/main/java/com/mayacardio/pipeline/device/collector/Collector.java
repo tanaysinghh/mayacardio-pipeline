@@ -19,6 +19,12 @@ public final class Collector implements Runnable {
     public static final String R_DISK_FULL = "disk_full";
     public static final String R_STORAGE = "storage_error";
     private static final int MAX_TIMEOUTS_BEFORE_RECONNECT = 3;
+    private static final int MAX_ERRORS_BEFORE_PROBE = 3;
+    private static final int PROBES_BEFORE_PLAIN_READS = 2;
+    private static final long PARK_MIN_MS = 1000;
+    private static final long PARK_MAX_MS = 5000;
+    private static final long ALIVE_WINDOW_MS = 5000;
+    private static final long SKIP_CONFIRM_MS = 11_000;
     private static final int MAX_HINTS = 64;
 
     private final DeviceStore store;
@@ -40,9 +46,18 @@ public final class Collector implements Runnable {
     private final ArrayDeque<DeviceStore.Commit>[] pending = new ArrayDeque[]{null, new ArrayDeque<>(), new ArrayDeque<>()};
     private final long[] pendingSamples = new long[3];
     private int consecutiveTimeouts;
+    private int consecutiveErrors;
+    private int probesAfterErrors;
+    private boolean plainReads;
+    private final long[] parkedUntil = new long[3];
+    private final long[] parkBackoff = {0, PARK_MIN_MS, PARK_MIN_MS};
+    private final long[] lastOkMono = new long[3];
+    private final long[] timeoutStreakStart = new long[3];
+    private final long[] skipTarget = {-1, -1, -1};
+    private final long[] skipSince = new long[3];
     private boolean needProbe = true;
     private long reconnectBackoff = 250;
-    private int maxCount = 400;
+    private final int[] maxCount = new int[3];
 
     public Collector(DeviceStore store, DeviceState state, MockClient client, DiskGuard disk,
                      long pollIntervalMs, int memoryCapSamples) {
@@ -108,6 +123,9 @@ public final class Collector implements Runnable {
                 state.reconnects.incrementAndGet();
                 needProbe = true;
                 consecutiveTimeouts = 0;
+                consecutiveErrors = 0;
+                probesAfterErrors = 0;
+                plainReads = false;
                 reconnectBackoff = 250;
                 state.setMockConnected(true);
             } catch (IOException e) {
@@ -124,8 +142,15 @@ public final class Collector implements Runnable {
                 return;
             }
             consecutiveTimeouts = 0;
+            if (probesAfterErrors > 0 && r.reply().sessionId().equals(sessionId) && probesAfterErrors >= PROBES_BEFORE_PLAIN_READS && !plainReads) {
+                plainReads = true;
+                store.event("plain_reads", "from_index reads keep failing on the same session; switching to plain reads");
+            }
             onSessionSeen(r.reply().sessionId());
             needProbe = false;
+            if (plainReads && r.reply().sessionId().equals(sessionId) && !closed && !ended[1]) {
+                process(1, r.reply());
+            }
             return;
         }
         if (closed) {
@@ -137,28 +162,54 @@ public final class Collector implements Runnable {
         long cycleStart = Clocks.monoMs();
         boolean more = false;
         for (int s = 1; s <= 2; s++) {
-            if (ended[s]) {
+            if (ended[s] || cycleStart < parkedUntil[s]) {
                 continue;
             }
-            MockClient.Result r = client.read(s, next[s], this::stale);
+            long requestedAt = Clocks.monoMs();
+            MockClient.Result r = client.read(s, plainReads ? null : next[s], this::stale);
+            if (r.outcome() == MockClient.Outcome.TIMEOUT && timeoutStreakStart[s] == 0) {
+                timeoutStreakStart[s] = requestedAt;
+            }
+            if (r.outcome() == MockClient.Outcome.TIMEOUT && otherSensorAlive(s)) {
+                state.timeouts.incrementAndGet();
+                if (parkBackoff[s] == PARK_MIN_MS) {
+                    store.event("sensor_unresponsive", "sensor " + s + " not answering while the other sensor is; polling it less often");
+                }
+                parkedUntil[s] = Clocks.monoMs() + parkBackoff[s];
+                parkBackoff[s] = Math.min(PARK_MAX_MS, parkBackoff[s] * 2);
+                continue;
+            }
             if (r.outcome() != MockClient.Outcome.OK) {
                 handleFailure(r);
                 if (r.outcome() == MockClient.Outcome.CORRUPT) {
+                    consecutiveErrors++;
+                    if (consecutiveErrors >= MAX_ERRORS_BEFORE_PROBE) {
+                        consecutiveErrors = 0;
+                        probesAfterErrors++;
+                        needProbe = true;
+                        return;
+                    }
                     more = true;
                     continue;
                 }
                 return;
             }
             consecutiveTimeouts = 0;
+            consecutiveErrors = 0;
+            probesAfterErrors = 0;
+            lastOkMono[s] = Clocks.monoMs();
+            timeoutStreakStart[s] = 0;
+            parkedUntil[s] = 0;
+            parkBackoff[s] = PARK_MIN_MS;
             MockReply rep = r.reply();
             if (!rep.sessionId().equals(sessionId)) {
                 onSessionSeen(rep.sessionId());
                 return;
             }
             state.repliesOk.incrementAndGet();
-            maxCount = Math.max(maxCount, rep.count());
+            maxCount[s] = Math.max(maxCount[s], rep.count());
             process(s, rep);
-            if (rep.count() > 0 && rep.count() >= maxCount) {
+            if (rep.count() > 0 && rep.count() * 10L >= maxCount[s] * 9L) {
                 more = true;
             }
         }
@@ -169,6 +220,12 @@ public final class Collector implements Runnable {
         if (!more) {
             Clocks.sleepMs(cycleStart + pollIntervalMs - Clocks.monoMs());
         }
+    }
+
+    private boolean otherSensorAlive(int s) {
+        int o = 3 - s;
+        return !ended[o] && timeoutStreakStart[s] > 0 && lastOkMono[o] > timeoutStreakStart[s]
+                && Clocks.monoMs() - lastOkMono[o] < ALIVE_WINDOW_MS;
     }
 
     private void handleFailure(MockClient.Result r) {
@@ -200,7 +257,7 @@ public final class Collector implements Runnable {
         if (from == null || !rep.sessionId().equals(sessionId)) {
             return false;
         }
-        if (rep.firstIndex() + rep.count() > from) {
+        if (rep.firstIndex() + rep.count() > from || rep.count() == 0 && rep.firstIndex() >= from) {
             return false;
         }
         for (LossRange l : rep.lost()) {
@@ -321,8 +378,20 @@ public final class Collector implements Runnable {
                     }
                 }
             }
+            if (m == n0 && f > n0) {
+                long now = Clocks.monoMs();
+                if (skipTarget[s] != f) {
+                    skipTarget[s] = f;
+                    skipSince[s] = now;
+                } else if (now - skipSince[s] >= SKIP_CONFIRM_MS) {
+                    m = f;
+                }
+            }
         }
-        boolean endFlag = rep.sessionEnd() && count < maxCount;
+        if (m > n0) {
+            skipTarget[s] = -1;
+        }
+        boolean endFlag = rep.sessionEnd() && (count == 0 || count * 10L < maxCount[s] * 9L);
         if (m <= n0 && !(endFlag && !ended[s])) {
             hints[s] = keepFuture(known, n0);
             if (count > 0) {

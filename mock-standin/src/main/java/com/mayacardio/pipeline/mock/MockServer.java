@@ -39,6 +39,7 @@ public final class MockServer implements AutoCloseable {
     private final AtomicInteger duplicateRemaining = new AtomicInteger();
     private final AtomicInteger corruptVariant = new AtomicInteger();
     private final AtomicLong repliesSent = new AtomicLong();
+    private final long[] mutedUntil = {Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE};
 
     public MockServer(Generator generator, double speed, long durationSeconds, int bufferSeconds,
                       int port, int controlPort, Path groundTruthDir) throws IOException {
@@ -104,7 +105,7 @@ public final class MockServer implements AutoCloseable {
         OutputStream out = s.getOutputStream();
         String line;
         while ((line = in.readLine()) != null) {
-            if (System.nanoTime() < stallUntil.get()) {
+            if (System.nanoTime() < stallUntil.get() || muted(line)) {
                 continue;
             }
             String reply = handle(line);
@@ -133,6 +134,15 @@ public final class MockServer implements AutoCloseable {
             return session.read(sensor, from);
         } catch (IOException e) {
             return "{\"error\": \"bad request\"}";
+        }
+    }
+
+    private boolean muted(String line) {
+        try {
+            int sensor = MAPPER.readTree(line).path("sensor").asInt(-1);
+            return (sensor == 1 || sensor == 2) && System.nanoTime() < mutedUntil[sensor];
+        } catch (IOException e) {
+            return false;
         }
     }
 
@@ -184,6 +194,11 @@ public final class MockServer implements AutoCloseable {
             }
             case "corrupt" -> {
                 corruptRemaining.addAndGet(Integer.parseInt(p[1]));
+                return "{\"ok\": true}";
+            }
+            case "mute" -> {
+                int sensor = Integer.parseInt(p[1]);
+                mutedUntil[sensor] = System.nanoTime() + (long) (Double.parseDouble(p[2]) * 1e9);
                 return "{\"ok\": true}";
             }
             case "duplicate" -> {

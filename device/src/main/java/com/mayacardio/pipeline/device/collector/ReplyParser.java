@@ -22,6 +22,10 @@ public final class ReplyParser {
     }
 
     public static MockReply parse(String line) throws CorruptReplyException {
+        return parse(line, -1);
+    }
+
+    public static MockReply parse(String line, int requestedSensor) throws CorruptReplyException {
         int[] span = topLevelValueSpan(line, "data");
         if (span == null) {
             throw new CorruptReplyException("no data field");
@@ -39,11 +43,8 @@ public final class ReplyParser {
         if (!n.isObject() || n.has("error")) {
             throw new CorruptReplyException("error reply: " + n.path("error").asText(""));
         }
-        String crcText = n.path("crc32").asText("");
-        long expected;
-        try {
-            expected = Long.parseLong(crcText.trim(), 16);
-        } catch (NumberFormatException e) {
+        Long expected = crcValue(n.get("crc32"));
+        if (expected == null) {
             throw new CorruptReplyException("bad crc32 field");
         }
         CRC32 crc = new CRC32();
@@ -51,19 +52,28 @@ public final class ReplyParser {
         if (crc.getValue() != expected) {
             throw new CorruptReplyException("crc32 mismatch");
         }
-        JsonNode sid = n.get("session_id");
-        if (sid == null || !sid.isTextual() || sid.asText().isEmpty()) {
+        JsonNode sidNode = n.get("session_id");
+        String sid = sidNode == null || !(sidNode.isTextual() || sidNode.isNumber()) ? "" : sidNode.asText();
+        if (sid.isEmpty()) {
             throw new CorruptReplyException("missing session_id");
         }
-        int sensor = n.path("sensor").asInt(-1);
-        if (!Signal.validSensor(sensor)) {
+        JsonNode data = n.get("data");
+        Long sensorField = asLong(n.get("sensor"));
+        int sensor;
+        if (sensorField != null && Signal.validSensor(sensorField.intValue())) {
+            sensor = sensorField.intValue();
+        } else if (sensorField == null && data.size() > 0 && data.get(0).isArray()
+                && (data.get(0).size() == 3 || data.get(0).size() == 2)) {
+            sensor = data.get(0).size() == 3 ? 1 : 2;
+        } else if (sensorField == null && Signal.validSensor(requestedSensor)) {
+            sensor = requestedSensor;
+        } else {
             throw new CorruptReplyException("bad sensor");
         }
-        JsonNode fi = n.get("first_index");
-        if (fi == null || !fi.isIntegralNumber() || fi.asLong() < 0) {
+        Long first = asLong(n.get("first_index"));
+        if (first == null || first < 0) {
             throw new CorruptReplyException("bad first_index");
         }
-        JsonNode data = n.get("data");
         int channels = Signal.channels(sensor);
         int[][] rows = new int[data.size()][];
         for (int k = 0; k < rows.length; k++) {
@@ -81,28 +91,64 @@ public final class ReplyParser {
             }
             rows[k] = r;
         }
-        JsonNode countNode = n.get("count");
-        if (countNode != null && countNode.isIntegralNumber() && countNode.asInt() != rows.length) {
+        Long count = asLong(n.get("count"));
+        if (count != null && count != rows.length) {
             throw new CorruptReplyException("count does not match data");
         }
         List<LossRange> lost = new ArrayList<>();
         JsonNode lostNode = n.get("lost");
         if (lostNode != null && lostNode.isArray()) {
             for (JsonNode l : lostNode) {
-                JsonNode from = l.get("from_index");
-                if (from == null || !from.isIntegralNumber()) {
-                    throw new CorruptReplyException("bad lost entry");
+                Long from = l.isObject() ? asLong(l.get("from_index")) : null;
+                if (from == null || from < 0) {
+                    continue;
                 }
                 JsonNode to = l.get("to_index");
-                Long toIdx = to == null || to.isNull() ? null : to.asLong();
-                if (toIdx != null && toIdx < from.asLong()) {
-                    throw new CorruptReplyException("bad lost range");
+                Long toIdx = to == null || to.isNull() ? null : asLong(to);
+                if (to != null && !to.isNull() && (toIdx == null || toIdx < from)) {
+                    continue;
                 }
-                String reason = l.path("reason").asText("");
-                lost.add(new LossRange(sensor, from.asLong(), toIdx, reason.isEmpty() ? "unspecified_by_mock" : reason));
+                JsonNode reasonNode = l.get("reason");
+                String reason = reasonNode == null || reasonNode.isNull() ? "" : reasonNode.asText("");
+                lost.add(new LossRange(sensor, from, toIdx, reason.isEmpty() ? "unspecified_by_mock" : reason));
             }
         }
-        return new MockReply(sid.asText(), sensor, fi.asLong(), rows.length, lost, n.path("session_end").asBoolean(false), rows);
+        return new MockReply(sid, sensor, first, rows.length, lost, n.path("session_end").asBoolean(false), rows);
+    }
+
+    static Long asLong(JsonNode v) {
+        if (v == null || v.isNull()) {
+            return null;
+        }
+        if (v.isIntegralNumber()) {
+            return v.asLong();
+        }
+        if (v.isNumber()) {
+            double d = v.asDouble();
+            return d == Math.rint(d) && Math.abs(d) < 9e15 ? (long) d : null;
+        }
+        if (v.isTextual() && v.asText().trim().matches("-?[0-9]{1,18}")) {
+            return Long.parseLong(v.asText().trim());
+        }
+        return null;
+    }
+
+    static Long crcValue(JsonNode v) {
+        if (v == null || v.isNull()) {
+            return null;
+        }
+        if (v.isIntegralNumber()) {
+            long x = v.asLong();
+            return x >= 0 && x <= 0xFFFFFFFFL ? x : null;
+        }
+        String t = v.asText("").trim();
+        if (t.startsWith("0x") || t.startsWith("0X")) {
+            t = t.substring(2);
+        }
+        if (t.isEmpty() || t.length() > 8 || !t.matches("[0-9a-fA-F]+")) {
+            return null;
+        }
+        return Long.parseLong(t, 16);
     }
 
     static int[] topLevelValueSpan(String s, String wanted) {

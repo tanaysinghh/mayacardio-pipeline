@@ -88,7 +88,7 @@ public final class MockClient implements Closeable {
             }
             MockReply reply;
             try {
-                reply = ReplyParser.parse(line);
+                reply = ReplyParser.parse(line, sensor);
             } catch (ReplyParser.CorruptReplyException e) {
                 return new Result(Outcome.CORRUPT, null, e.getMessage());
             }
