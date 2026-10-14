@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+if [ $# -ne 2 ]; then
+  echo "usage: check_ground_truth EXPORT.jsonl GROUND_TRUTH.json" >&2
+  echo "STAND-IN for the official check_ground_truth. EXPORT is the output of 'pipeline export --session ID --from device|cloud';" >&2
+  echo "GROUND_TRUTH is the session file the stand-in mock writes (mock-ground-truth/<session_id>.json)." >&2
+  echo "Prints a JSON report; exit code 0 = pass, 1 = fail." >&2
+  exit 2
+fi
+HERE="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
+JAR="${PIPELINE_TOOLS_JAR:-}"
+for c in "$JAR" /opt/pipeline/lib/pipeline-tools.jar "$HERE/../dist/pipeline-tools.jar" "$HERE/../tools/target/pipeline-tools.jar"; do
+  if [ -n "$c" ] && [ -f "$c" ]; then JAR="$c"; break; fi
+done
+[ -f "$JAR" ] || { echo "pipeline-tools.jar not found; build with ./mvnw -DskipTests package" >&2; exit 1; }
+exec "${JAVA:-java}" -Xmx512m -jar "$JAR" check-standin --export "$1" --gt "$2"

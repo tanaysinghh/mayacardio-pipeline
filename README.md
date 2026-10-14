@@ -97,10 +97,19 @@ sudo /opt/pipeline/bin/measure-resources.sh --duration 3600 --out resources-pi4.
 
 It reports average CPU, peak memory, MB written to storage by the daemon and MB sent on the network interface. `scripts/arm64-verify.sh --seconds 3600` does the same inside an ARM64 container limited to 4 CPUs and 2 GB (QEMU emulation on an x86 host; CPU figures from emulation are not representative of a Pi 4, see `evidence/resources/`).
 
-## Stand-in mock usage
+## Stand-in mock and checker
+
+`scripts/biosignal-mock` (`biosignal-mock.cmd` on Windows) and `scripts/check_ground_truth` (`.cmd`) are **stand-ins** with the command lines the assessment describes; `install.sh` puts them on the PATH. Start the stand-in exactly like the official mock:
 
 ```sh
-java -jar dist/biosignal-mock-standin.jar --mode signal --seed 7 --duration 3600 --port 7100
-printf 'outage 2 8\n' | nc 127.0.0.1 7101    # control port: stall S | corrupt N | duplicate N | outage SENSOR S | speed X | restart | status
-java -jar dist/pipeline-tools.jar check-standin --export export.jsonl --gt mock-ground-truth/<session>.json
+biosignal-mock --mode signal --seed 7 --duration 3600 --port 7100
+```
+
+It accepts only those four options. Stand-in-only settings come from the environment: `BIOSIGNAL_MOCK_GT_DIR` (where it writes `<session_id>.json` ground truth, default `./mock-ground-truth`), `BIOSIGNAL_MOCK_CONTROL_PORT` (default port+1; accepts `stall S`, `corrupt N`, `duplicate N`, `outage SENSOR S`, `speed X`, `restart`, `status`), `BIOSIGNAL_MOCK_SPEED`.
+
+```sh
+pipeline export --session <ID> --from device > export.jsonl
+check_ground_truth export.jsonl mock-ground-truth/<ID>.json     # JSON report; exit 0 = pass, 1 = fail
+printf 'outage 2 8
+' | nc 127.0.0.1 7101                       # inject a fault into the stand-in
 ```

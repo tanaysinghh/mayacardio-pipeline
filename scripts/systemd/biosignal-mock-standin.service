@@ -7,7 +7,9 @@ StartLimitIntervalSec=0
 Type=simple
 User=pipeline
 Group=pipeline
-ExecStart=/usr/bin/java -Xmx128m -XX:+UseSerialGC -jar /opt/pipeline/lib/biosignal-mock-standin.jar --mode signal --seed 7 --duration 3600 --port 7100 --ground-truth-dir /var/lib/pipeline-mock-gt
+Environment=BIOSIGNAL_MOCK_GT_DIR=/var/lib/pipeline-mock-gt
+WorkingDirectory=/var/lib/pipeline-mock-gt
+ExecStart=/usr/local/bin/biosignal-mock --mode signal --seed 7 --duration 3600 --port 7100
 Restart=always
 RestartSec=1
 StateDirectory=pipeline-mock-gt

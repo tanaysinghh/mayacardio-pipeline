@@ -1,0 +1,35 @@
+#!/bin/sh
+set -e
+usage() {
+  echo "usage: biosignal-mock --mode signal|ramp --seed N --duration SECONDS --port N" >&2
+  echo "STAND-IN for the official biosignal-mock. Extra stand-in settings only via environment:" >&2
+  echo "  BIOSIGNAL_MOCK_CONTROL_PORT (default port+1), BIOSIGNAL_MOCK_GT_DIR (default ./mock-ground-truth)," >&2
+  echo "  BIOSIGNAL_MOCK_SPEED (default 1), BIOSIGNAL_MOCK_JAR (path to biosignal-mock-standin.jar)" >&2
+  exit 2
+}
+MODE=""; SEED=""; DURATION=""; PORT=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --mode) MODE="$2"; shift 2 ;;
+    --seed) SEED="$2"; shift 2 ;;
+    --duration) DURATION="$2"; shift 2 ;;
+    --port) PORT="$2"; shift 2 ;;
+    *) usage ;;
+  esac
+done
+[ -n "$MODE" ] && [ -n "$SEED" ] && [ -n "$DURATION" ] && [ -n "$PORT" ] || usage
+case "$MODE" in signal|ramp) ;; *) usage ;; esac
+
+HERE="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
+JAR="${BIOSIGNAL_MOCK_JAR:-}"
+for c in "$JAR" /opt/pipeline/lib/biosignal-mock-standin.jar "$HERE/../dist/biosignal-mock-standin.jar" \
+         "$HERE/../mock-standin/target/biosignal-mock-standin.jar"; do
+  if [ -n "$c" ] && [ -f "$c" ]; then JAR="$c"; break; fi
+done
+[ -f "$JAR" ] || { echo "biosignal-mock-standin.jar not found; build with ./mvnw -DskipTests package" >&2; exit 1; }
+
+exec "${JAVA:-java}" -Xmx128m -XX:+UseSerialGC -jar "$JAR" \
+  --mode "$MODE" --seed "$SEED" --duration "$DURATION" --port "$PORT" \
+  --control-port "${BIOSIGNAL_MOCK_CONTROL_PORT:-$((PORT + 1))}" \
+  --ground-truth-dir "${BIOSIGNAL_MOCK_GT_DIR:-mock-ground-truth}" \
+  --speed "${BIOSIGNAL_MOCK_SPEED:-1}"

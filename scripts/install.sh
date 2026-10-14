@@ -10,7 +10,9 @@ Installs the pipeline on a Raspberry Pi OS / Debian (arm64 or amd64) board:
   - creates the 'pipeline' system user and /opt/pipeline, /etc/pipeline, /var/lib/pipeline
   - installs the jars from ./dist (or builds them with --build, which needs a JDK)
   - installs /usr/local/bin/pipeline and the systemd unit, enables it at boot and starts it
-  --with-mock-standin also installs and starts the stand-in mock (testing only).
+  --with-mock-standin also installs and starts the stand-in mock (testing only):
+      biosignal-mock --mode signal --seed 7 --duration 3600 --port 7100
+  An existing non-symlink /usr/local/bin/biosignal-mock (the official mock) is never overwritten.
 EOF
 }
 
@@ -60,7 +62,13 @@ install -m 0644 "$REPO/dist/pipeline-tools.jar" /opt/pipeline/lib/ 2>/dev/null |
 install -m 0644 "$REPO/dist/biosignal-mock-standin.jar" /opt/pipeline/lib/ 2>/dev/null || true
 install -m 0755 "$REPO/scripts/pipeline" /opt/pipeline/bin/pipeline
 install -m 0755 "$REPO/scripts/measure-resources.sh" /opt/pipeline/bin/measure-resources.sh
+install -m 0755 "$REPO/scripts/biosignal-mock" /opt/pipeline/bin/biosignal-mock
+install -m 0755 "$REPO/scripts/check_ground_truth" /opt/pipeline/bin/check_ground_truth
 ln -sf /opt/pipeline/bin/pipeline /usr/local/bin/pipeline
+if [ ! -e /usr/local/bin/biosignal-mock ] || [ -L /usr/local/bin/biosignal-mock ]; then
+  ln -sf /opt/pipeline/bin/biosignal-mock /usr/local/bin/biosignal-mock
+fi
+ln -sf /opt/pipeline/bin/check_ground_truth /usr/local/bin/check_ground_truth
 
 if [ ! -f /etc/pipeline/pipeline.conf ]; then
   install -m 0640 -g pipeline "$REPO/scripts/pipeline.conf.example" /etc/pipeline/pipeline.conf
