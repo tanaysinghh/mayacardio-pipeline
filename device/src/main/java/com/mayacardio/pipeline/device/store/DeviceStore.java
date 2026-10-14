@@ -44,7 +44,8 @@ public final class DeviceStore implements AutoCloseable {
                     + " to_index INTEGER, reason TEXT NOT NULL, recorded_at TEXT NOT NULL, synced INTEGER NOT NULL DEFAULT 0,"
                     + " PRIMARY KEY(sid, sensor, from_index))",
             "CREATE TABLE IF NOT EXISTS stream_state(sid INTEGER NOT NULL, sensor INTEGER NOT NULL, next_index INTEGER NOT NULL,"
-                    + " stored_count INTEGER NOT NULL, ended INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(sid, sensor))",
+                    + " stored_count INTEGER NOT NULL, ended INTEGER NOT NULL DEFAULT 0, run_from INTEGER, run_to INTEGER,"
+                    + " PRIMARY KEY(sid, sensor))",
             "CREATE TABLE IF NOT EXISTS stored_runs(sid INTEGER NOT NULL, sensor INTEGER NOT NULL, from_index INTEGER NOT NULL,"
                     + " to_index INTEGER NOT NULL, PRIMARY KEY(sid, sensor, from_index))",
             "CREATE TABLE IF NOT EXISTS sync_state(sid INTEGER PRIMARY KEY, cloud_held_1 INTEGER NOT NULL DEFAULT 0,"
@@ -56,6 +57,8 @@ public final class DeviceStore implements AutoCloseable {
             "CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, mono_ms INTEGER NOT NULL,"
                     + " kind TEXT NOT NULL, detail TEXT)"
     };
+
+    public static final int DEFAULT_PAGE_SIZE = 1024;
 
     private final Connection conn;
 
@@ -77,10 +80,22 @@ public final class DeviceStore implements AutoCloseable {
         cfg.setSynchronous(SQLiteConfig.SynchronousMode.FULL);
         cfg.setBusyTimeout(15_000);
         cfg.setJournalSizeLimit(64 * 1024 * 1024);
+        if (!Files.exists(db) || db.toFile().length() == 0) {
+            try (Connection init = DriverManager.getConnection("jdbc:sqlite:" + db.toAbsolutePath());
+                 Statement st = init.createStatement()) {
+                st.execute("PRAGMA page_size=" + pageSize());
+                st.execute("PRAGMA journal_mode=WAL");
+            }
+        }
         Connection c = DriverManager.getConnection("jdbc:sqlite:" + db.toAbsolutePath(), cfg.toProperties());
         DeviceStore s = new DeviceStore(c);
         s.init();
         return s;
+    }
+
+    static int pageSize() {
+        String v = System.getProperty("pipeline.db.page.size", System.getenv("PIPELINE_DB_PAGE_SIZE"));
+        return v == null || v.isBlank() ? DEFAULT_PAGE_SIZE : Integer.parseInt(v.trim());
     }
 
     private void init() throws SQLException {
@@ -88,6 +103,16 @@ public final class DeviceStore implements AutoCloseable {
             st.execute("PRAGMA synchronous=FULL");
             for (String ddl : SCHEMA) {
                 st.execute(ddl);
+            }
+            boolean hasRun = false;
+            try (ResultSet rs = st.executeQuery("PRAGMA table_info(stream_state)")) {
+                while (rs.next()) {
+                    hasRun |= "run_from".equals(rs.getString("name"));
+                }
+            }
+            if (!hasRun) {
+                st.execute("ALTER TABLE stream_state ADD COLUMN run_from INTEGER");
+                st.execute("ALTER TABLE stream_state ADD COLUMN run_to INTEGER");
             }
         }
     }
@@ -246,24 +271,44 @@ public final class DeviceStore implements AutoCloseable {
                     }
                 }
                 long last = c.dataFirst() + rows.length - 1;
-                int extended;
+                Long runFrom = null;
+                Long runTo = null;
                 try (PreparedStatement ps = conn.prepareStatement(
-                        "UPDATE stored_runs SET to_index = ? WHERE sid = ? AND sensor = ? AND to_index = ?")) {
-                    ps.setLong(1, last);
-                    ps.setLong(2, c.sid());
-                    ps.setInt(3, c.sensor());
-                    ps.setLong(4, c.dataFirst() - 1);
-                    extended = ps.executeUpdate();
-                }
-                if (extended == 0) {
-                    try (PreparedStatement ps = conn.prepareStatement(
-                            "INSERT OR REPLACE INTO stored_runs(sid, sensor, from_index, to_index) VALUES(?, ?, ?, ?)")) {
-                        ps.setLong(1, c.sid());
-                        ps.setInt(2, c.sensor());
-                        ps.setLong(3, c.dataFirst());
-                        ps.setLong(4, last);
-                        ps.executeUpdate();
+                        "SELECT run_from, run_to FROM stream_state WHERE sid = ? AND sensor = ?")) {
+                    ps.setLong(1, c.sid());
+                    ps.setInt(2, c.sensor());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            long f = rs.getLong(1);
+                            runFrom = rs.wasNull() ? null : f;
+                            long t = rs.getLong(2);
+                            runTo = rs.wasNull() ? null : t;
+                        }
                     }
+                }
+                if (runTo != null && runTo == c.dataFirst() - 1) {
+                    runTo = last;
+                } else {
+                    if (runFrom != null) {
+                        try (PreparedStatement ps = conn.prepareStatement(
+                                "INSERT OR REPLACE INTO stored_runs(sid, sensor, from_index, to_index) VALUES(?, ?, ?, ?)")) {
+                            ps.setLong(1, c.sid());
+                            ps.setInt(2, c.sensor());
+                            ps.setLong(3, runFrom);
+                            ps.setLong(4, runTo);
+                            ps.executeUpdate();
+                        }
+                    }
+                    runFrom = c.dataFirst();
+                    runTo = last;
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE stream_state SET run_from = ?, run_to = ? WHERE sid = ? AND sensor = ?")) {
+                    ps.setLong(1, runFrom);
+                    ps.setLong(2, runTo);
+                    ps.setLong(3, c.sid());
+                    ps.setInt(4, c.sensor());
+                    ps.executeUpdate();
                 }
             }
             try (PreparedStatement ps = conn.prepareStatement(
@@ -320,6 +365,16 @@ public final class DeviceStore implements AutoCloseable {
 
     public synchronized RangeSet storedRuns(long sid, int sensor) throws SQLException {
         RangeSet set = new RangeSet();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT run_from, run_to FROM stream_state WHERE sid = ? AND sensor = ? AND run_from IS NOT NULL")) {
+            ps.setLong(1, sid);
+            ps.setInt(2, sensor);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    set.add(rs.getLong(1), rs.getLong(2));
+                }
+            }
+        }
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT from_index, to_index FROM stored_runs WHERE sid = ? AND sensor = ? ORDER BY from_index")) {
             ps.setLong(1, sid);

@@ -111,8 +111,12 @@ class CollectorFaultTest {
                 assertEquals(lostSum, lost.count(), "overlapping losses on sensor " + s);
                 SampleBlock b = store.block(info.sid(), s, 0, Math.max(0, st.nextIndex() - 1));
                 long count = 0;
+                RangeSet present = new RangeSet();
                 for (long i = 0; i < st.nextIndex(); i++) {
                     boolean has = b.has(i);
+                    if (has) {
+                        present.add(i, i);
+                    }
                     boolean isLost = lost.contains(i);
                     assertTrue(has ^ isLost, "sensor " + s + " index " + i + " stored=" + has + " lost=" + isLost);
                     if (has) {
@@ -121,6 +125,7 @@ class CollectorFaultTest {
                     }
                 }
                 assertEquals(count, st.storedCount(), "stored_count mismatch");
+                assertEquals(present.toString(), store.storedRuns(info.sid(), s).toString(), "stored runs mismatch on sensor " + s);
                 assertEquals(count, store.countSamples(info.sid(), s));
                 stored += count;
             }
