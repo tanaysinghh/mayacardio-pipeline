@@ -1,54 +1,57 @@
 # Design note
 
+*Validated against stand-in versions of `biosignal-mock` and `check_ground_truth` written from the assessment's "Mock service" section; the official tools were not available.*
+
 ## Architecture
 
 ```
-biosignal-mock ──TCP/NDJSON──► Collector ──1 txn per reply──► SQLite (WAL, synchronous=FULL)
-  (on the board)               (1 thread)                       samples · losses · stream_state · sync_state · results
-                                                                     │                         │
-                         Heartbeat (GET /health, 2 s) ─► mode        ▼                         ▼
-                                                        Live lane (last 10 s, 1/s)    Offline processor (core lib)
-                                                        Catch-up lane (range diff,       results mode=offline
-                                                        gzip binary, oldest first, x2)
-                                                                     │ HTTPS + bearer token
-                                                                     ▼
-              Cloud (Spring Boot): ingest ─► segment store (PostgreSQL / SQLite) ─► window processor (core lib) ─► results mode=online
+biosignal-mock ──TCP/NDJSON──► Collector ──1 fsynced txn per reply──► SQLite (WAL, synchronous=FULL)
+ (on the board)                (1 thread)                              sample_blocks · losses · stream_state · sync_state · results
+                                                                          │                          │
+                        Heartbeat GET /health every 2 s ─► mode           ▼                          ▼
+                                                        Live lane (last 10 s, 1/s)         Offline processor (core)
+                                                        Catch-up lane (range diff, gzip,     results mode=offline
+                                                        oldest first, 2 in parallel)
+                                                                          │ HTTPS + bearer token
+                                                                          ▼
+        Cloud (Java 17, JDK HTTP server): ingest ─► 400-sample segments (PostgreSQL/SQLite) ─► window processor (core) ─► results mode=online
 ```
 
-**Device (plain Java 17, one JVM).** The collector polls each sensor every 0.5 s (back-to-back when behind), always with `from_index = next expected index`. Each reply is validated (CRC-32 over the raw `data` text exactly as received, shape, 24-bit range) and committed in **one SQLite transaction**: new samples, loss records, the per-sensor `next_index` and the stored-range index. Corrupt replies are discarded and re-read; duplicated or late replies are self-describing (`first_index`) so they can never shift data, and the primary key `(session, sensor, idx)` rejects any re-insert. Stalls hit a 2 s monotonic timeout, the request is re-sent and after 3 timeouts the connection is reopened. A new `session_id` closes the old session with `[next_index, null]` declared lost. The collector never touches the network.
+**Device.** The collector polls each sensor every 0.5 s (back to back while behind), always asking `from_index = next expected index`. A reply is accepted only if the CRC-32 of the raw `data` text as received (never re-serialised) matches, rows have the right width and values are 24-bit. Each accepted reply becomes **one SQLite transaction**: one compact row with the new samples (delta/varint), the loss records for any gap before them, and the sensor's `next_index`. Duplicated or late replies are self-describing (`first_index`), so they can never shift data; a block may only start at or after the committed `next_index` and any overlap is trimmed inside the transaction, so a sample is stored at most once. Stalls hit a 2 s monotonic timeout and are retried; a sensor that stops answering while the other answers is polled less often so it cannot starve the healthy one; after repeated error replies the client re-checks the session. A new `session_id` closes the old session with `[next_index, null]` declared lost. The collector never touches the network.
 
-**Loss ledger invariant.** For every session and sensor, every index below `next_index` is either stored or inside exactly one loss record with a reason (the mock's `lost` reason where given: `buffer_overflow`, `sensor_outage`; otherwise ours: `not_delivered_by_mock`, `mock_session_restarted_unread_tail`, `disk_full`). Nothing is ever filled in.
+**Loss ledger.** For every session and sensor, every index below `next_index` is stored or inside exactly one loss record with a reason (the mock's `lost` reason where it gave one, e.g. `buffer_overflow`, `sensor_outage`; otherwise `not_delivered_by_mock`, `mock_session_restarted_unread_tail` or `disk_full`). Nothing is filled in. `pipeline verify` checks this invariant and SQLite's integrity.
 
-**Cloud.** Batches are merged idempotently into 400-sample segments (presence bitmap + compressed values) so a duplicate never overwrites and an hour of data is ~11 MB. A window is computed only when all of its inputs are *resolved* (held, or declared lost, or past the end of a closed session), so every stored result is final. The device and the cloud call the same `core` code; heart-rate peaks are computed exactly as a scan from index 0 would compute them (a local anchor search, cross-checked against a global scan in tests).
+**Cloud.** Batches merge idempotently into 400-sample segments (presence bitmap + compressed values; a duplicate never overwrites). A window is computed only once all its inputs are *resolved* (held, declared lost, or past the end of a closed session), so every stored result is final. Device and cloud run the same `core` code; heart-rate peaks equal a scan from index 0 (local anchor search, cross-checked against a global scan in tests).
 
-**Switching and catch-up.** Two failed heartbeats → offline, two good ones → online; in-flight uploads are aborted on every switch. Offline, the device computes windows itself. Back online, the live lane restarts at "now − 10 s" (so live windows have their 5 s heart-rate context at once) while the catch-up lane asks the cloud which ranges it holds and sends the difference in 40,000-index gzip batches, two at a time.
+**Switching and catch-up.** Two failed heartbeats → offline, two good ones → online; in-flight uploads are aborted on every switch. Offline, the device computes windows itself. Back online, the live lane restarts at "now − 10 s" (so live windows have their 5 s heart-rate context) while the catch-up lane asks which ranges the cloud holds and sends the difference in 40,000-index gzip batches, halving the batch on timeout and backing off on errors.
 
-**Measured (stand-in mock, local cloud; evidence/SUMMARY.md):** online results 0.7 s (p50) and at most 0.72 s after a window ends; offline 5.6 s after a network cut, online 1.0-1.5 s after it returns; a 60 s outage fully synced 2.1 s later; a 2-hour backlog (5.76 M samples, 26.8 MB on the wire) synced 9.1 s later; three `kill -9` restarts and every injected mock fault with zero silent loss, zero duplicates and all results equal to an independent reference.
+**Interpretations** (each switchable by one config key, same value on device and cloud): rounding is round-half-even on the exact double (Python `round`); only sensor 1 gaps null the heart rate; result fields are flat (`mean_1`, `min_1`, …); a window with no data on a sensor is reported with `missing_N = 400` and nulls; the last window of a closed session is reported with indices past the end counted as missing; windows restart at 0 in each session.
+
+**Measured** (stand-ins, local network): {{MEASURED}}
 
 ## What is guaranteed, and under which assumptions
 
 | Claim | Basis | Assumes |
 |---|---|---|
-| A sample acknowledged by a commit survives a crash, reboot or power cut | WAL with `synchronous=FULL` fsyncs every commit | the storage honours flush (SD cards that lie about flush can lose recent commits) |
-| Every sample is on disk at most once | primary key; overlap skipped before insert | — |
-| No silent loss: every missing index is listed with a reason | ledger invariant, enforced in the same transaction | the database is not corrupted |
-| Restart of the daemon loses nothing if it is back within ~8 s | resume from `next_index` with `from_index`; the mock buffers 10 s | the mock kept running (systemd restarts us in ~1 s, JVM start ~1-3 s on a Pi) |
-| Offline within 10 s, online within 10 s of the network changing | ≤ 2 s + 2 s + 1.5 s timeout to go offline; ≤ ~4 s to go online | the cloud host is awake (see limits) |
-| Cloud copy complete after an outage | range reconciliation repeats until the difference is empty | the cloud is reachable and fast enough (measured above, on a local cloud) |
-| Results identical online and offline | same code, computed only on resolved inputs | the rounding and heart-rate interpretations match the official reference |
+| A sample acknowledged by a commit survives a crash, reboot or power cut | WAL with `synchronous=FULL` fsyncs every commit | the storage honours flush (some SD cards do not) |
+| Every sample is on disk at most once | blocks start at or after the committed `next_index`; overlap trimmed in the same transaction | the database is not corrupted |
+| No silent loss: every missing index is listed with a reason | ledger invariant, written in the same transaction | as above |
+| A daemon restart loses nothing if it is back within ~8 s | resume from `next_index` via `from_index`; the mock buffers 10 s | the mock kept running (systemd restarts in ~1 s) |
+| Offline within 10 s, online within 10 s of the network changing | ≤ 2 s + 2 s + 1.5 s to go offline; ≤ ~4 s to go online | the cloud is awake (a sleeping free-tier service needs ~1 min to wake) |
+| Cloud copy complete after an outage | range reconciliation repeats until nothing is missing | the cloud is reachable and fast enough |
+| Results identical online and offline | same code, computed only on resolved inputs | the interpretations above match the reference |
 
-**Not guaranteed / known limits.** (1) Data the mock generated but we had not yet committed when power is lost (the mock dies with the board). (2) The unread tail of an interrupted session is listed only once the device sees the new session. (3) If the disk stays full beyond the 2-minute memory buffer, the oldest buffered samples are dropped and declared `disk_full`; if the process dies while buffering, those samples are lost and later appear as the mock's `buffer_overflow`. (4) The 5 s online latency depends on the cloud host: on Render's free tier the service sleeps after 15 minutes without requests, so after a long outage the first minute back is spent waking it (data unaffected; an external pinger avoids it). (5) One cloud instance only. (6) Wall-clock time is used only for display; all timeouts and ordering use the monotonic clock.
+**Not guaranteed.** (1) Data the mock generated but we had not yet committed when power is lost. (2) The unread tail of an interrupted session is listed only once the device sees the new session. (3) If the disk stays full beyond a 2-minute memory buffer, the oldest buffered samples are dropped and declared `disk_full`; if the process dies while buffering, those samples later appear as the mock's `buffer_overflow`. (4) Online latency and the switch back to online depend on the cloud host; on Render's free tier the service sleeps after 15 min without requests (an uptime pinger prevents it). (5) One cloud instance only. (6) Wall-clock time is display-only; all timeouts and ordering use the monotonic clock.
 
 ## Maximum data loss on a power cut
 
-Per sensor, data reaches disk only by commit, and commits happen every poll (0.5 s when caught up) plus the time to read and commit one reply (normally 5-30 ms). At the instant of a power cut, the samples generated since the last commit are either still in the mock's memory or in our process memory, and both are gone (the mock runs on the same board and restarts with a new session). So the loss is **one poll interval plus one read-and-commit, about 0.5-0.6 s per sensor**, measured maximum gap between commits **0.51-0.52 s** in every run without an injected mock stall. We state **at most 1.0 s per sensor** to leave margin for scheduling or I/O stalls on the Pi. The lost range is recorded on the next boot as `[next_index, null]`, reason `mock_session_restarted_unread_tail`. The simulated power cut (SIGKILL of daemon and mock together) lost 0.025-0.083 s. This bound assumes the SD card honours fsync and the disk was not full at the time.
+Data reaches disk only by commit, and a commit happens every poll (0.5 s when caught up) plus the time to read and commit one reply (normally 5-30 ms). At the moment of a power cut the samples generated since the last commit are either in the mock's memory or in ours, and both are gone (the mock runs on the same board and restarts with a new session). The loss is therefore **one poll interval plus one read-and-commit, about 0.5-0.6 s per sensor**; the largest gap between commits measured in all runs without an injected stall was {{GAP}}. We state **at most 1.0 s per sensor**, leaving margin for scheduling or I/O stalls on the Pi. The lost range is recorded at the next boot as `[next_index, null]`, reason `mock_session_restarted_unread_tail`. The simulated power cut (SIGKILL of daemon and mock together) lost {{POWERCUT}}. The bound assumes the storage honours fsync and the disk was not full.
 
-## Resource use
+## Resource use (online, mock with `--duration 3600`)
 
 | Environment | Avg CPU (of 4 cores) | Peak RSS | Disk written | Network sent |
 |---|---|---|---|---|
-| amd64 Linux container, native, `--cpus 4 --memory 2g`, 15 min online | 0.5 % (2.1 % of one core) | 112 MB | 336 MB/h | 15 MB/h |
-| ARM64 container under QEMU emulation, same limits, 15 min online | 2.8 % (11.2 % of one core, inflated by emulation) | 268 MB | 337 MB/h | 15 MB/h |
-| Raspberry Pi 4, 1 hour online | to be measured on the board  | | | |
+{{RESOURCES}}
+| **Raspberry Pi 4, 1 hour** | **to be filled on the real board** | | | |
 
-Measured with `scripts/measure-resources.sh` (CPU ticks from `/proc/PID/stat`, sampled RSS, `write_bytes` from `/proc/PID/io`, interface bytes from `/proc/net/dev`, elapsed time from `/proc/uptime` so clock changes cannot distort it). Disk writes are dominated by SQLite: one fsynced transaction per reply (about 4 per second), each rewriting the tail page of the sample table in the WAL and later at checkpoint. Using 1 KB pages instead of 4 KB cut writes from 573 to 336 MB/h (A/B run, same CPU); that is about 8 GB/day, which should be checked against the SD card's rated endurance (an industrial or high-endurance card is advisable). Setting `poll.interval.ms=1000` should roughly halve the commit count (not measured) at the cost of a ~1 s power-cut exposure. Catch-up after a 2-hour outage sent 26.8 MB (≈4.7 bytes per sample). Emulated ARM64 CPU and memory figures are not Pi 4 figures; the real 1-hour Pi 4 run is still to be done.
+Measured with `scripts/measure-resources.sh` (`/proc/PID/stat`, sampled RSS, `/proc/PID/io` `write_bytes`, `/proc/net/dev`; elapsed time from `/proc/uptime`). Writes are SQLite's: one fsynced transaction per reply (~4/s), each rewriting a few 1 KB pages in the WAL and again at checkpoint. Storing one compact row per reply instead of one row per sample cut writes from 336 to 176 MB/h at the same CPU; 1 KB pages had already cut them from 573. Emulated ARM64 CPU and memory are inflated by QEMU and are not Pi figures.

@@ -1,0 +1,310 @@
+{
+  "scenario" : "powercut",
+  "started_at" : "2026-10-14T14:42:08.067252343Z",
+  "environment" : {
+    "os" : "Linux 6.6.87.2-microsoft-standard-WSL2",
+    "arch" : "amd64",
+    "cpus_visible" : 24,
+    "java" : "Eclipse Adoptium 17.0.20.1",
+    "container_hint" : "docker",
+    "mock" : "mock-standin (NOT the official biosignal-mock)",
+    "cloud" : "local cloud jar (SQLite) behind an in-process TCP proxy used to cut the network"
+  },
+  "mock_buffer_seconds_of_data" : 10,
+  "sensor_1_samples_generated_but_not_saved" : 78,
+  "sensor_1_seconds_lost" : 0.195,
+  "sensor_2_samples_generated_but_not_saved" : 76,
+  "sensor_2_seconds_lost" : 0.19,
+  "simulation" : "SIGKILL of the device daemon and the mock at the same instant, restart 3 s later. This does NOT drop the OS page cache, so it is weaker than a real power pull; it does exercise the restart path and the tail-loss accounting.",
+  "worst_seconds_lost" : 0.195,
+  "stated_bound_seconds" : 1.0,
+  "checks" : {
+    "d0927951" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "d0927951",
+        "generated_per_sensor" : 12954,
+        "ground_truth_note" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator",
+        "checked_up_to_index" : 12953,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 12899,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 55,
+          "declared_lost_by_reason" : {
+            "mock_session_restarted_unread_tail" : 55
+          },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 12901,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 53,
+          "declared_lost_by_reason" : {
+            "mock_session_restarted_unread_tail" : 53
+          },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "sensor_1" : {
+          "device_samples" : 12899,
+          "cloud_samples" : 12899,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 12901,
+          "cloud_samples" : 12901,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 2,
+        "cloud_losses" : 2,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "offline" : {
+          "results" : 4,
+          "matched" : 4,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "online" : {
+          "results" : 33,
+          "matched" : 33,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 37,
+      "device_session_summary" : {
+        "session" : "d0927951",
+        "first_seen" : "2026-10-14T14:42:08.874247500Z",
+        "closed" : true,
+        "close_reason" : "mock restarted with new session 584cc07c",
+        "saved_1" : 12899,
+        "next_index_1" : 12899,
+        "saved_2" : 12901,
+        "next_index_2" : 12901,
+        "loss_ranges" : 2,
+        "cloud_complete" : true
+      }
+    },
+    "584cc07c" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "584cc07c",
+        "generated_per_sensor" : 9340,
+        "ground_truth_note" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator",
+        "checked_up_to_index" : 7970,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 8779,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 8780,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "compared_up_to_index" : 6370,
+        "sensor_1" : {
+          "device_samples" : 8779,
+          "cloud_samples" : 8374,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 8780,
+          "cloud_samples" : 8374,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 0,
+        "cloud_losses" : 0,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "offline" : {
+          "results" : 1,
+          "matched" : 1,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "online" : {
+          "results" : 21,
+          "matched" : 21,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 22,
+      "device_session_summary" : {
+        "session" : "584cc07c",
+        "first_seen" : "2026-10-14T14:42:44.444494266Z",
+        "closed" : false,
+        "close_reason" : null,
+        "saved_1" : 7971,
+        "next_index_1" : 7971,
+        "saved_2" : 7973,
+        "next_index_2" : 7973,
+        "loss_ranges" : 0,
+        "cloud_complete" : false
+      }
+    },
+    "final_status" : {
+      "mode" : "online",
+      "daemon" : "running",
+      "pid" : 1746,
+      "session" : "584cc07c",
+      "samples_saved" : 40917,
+      "samples_in_cloud" : 40917,
+      "backlog" : 0,
+      "current_session" : {
+        "saved_1" : 7557,
+        "saved_2" : 7560,
+        "cloud_1" : 7557,
+        "cloud_2" : 7560,
+        "next_index_1" : 7557,
+        "next_index_2" : 7560,
+        "closed" : false
+      },
+      "catchup_backlog_samples" : 0,
+      "loss_ranges" : 2,
+      "mode_since" : "2026-10-14T14:42:46.447894729Z",
+      "mock_connected" : true,
+      "disk_full" : false,
+      "pending_in_memory" : 0,
+      "max_commit_gap_ms" : [ 511, 522 ],
+      "replies_ok" : 148,
+      "corrupt_replies" : 0,
+      "timeouts" : 0,
+      "reconnects" : 1,
+      "stale_replies" : 0,
+      "storage_errors" : 1,
+      "offline_windows" : 3,
+      "uploaded_samples" : 15117,
+      "http_bytes_sent" : 86828,
+      "last_error" : "storage: [SQLITE_BUSY] The database file is locked (database is locked)",
+      "updated_at" : "2026-10-14T14:43:03.480461377Z"
+    },
+    "pass" : true
+  },
+  "pass" : true,
+  "timeline" : [ {
+    "t_ms" : 285,
+    "wall" : "2026-10-14T14:42:08.353343273Z",
+    "event" : "cloud_started",
+    "detail" : "port 46109, proxy 34807"
+  }, {
+    "t_ms" : 488,
+    "wall" : "2026-10-14T14:42:08.555858490Z",
+    "event" : "mock_started",
+    "detail" : "pid 1612"
+  }, {
+    "t_ms" : 490,
+    "wall" : "2026-10-14T14:42:08.558048605Z",
+    "event" : "device_started",
+    "detail" : "pid 1639"
+  }, {
+    "t_ms" : 2854,
+    "wall" : "2026-10-14T14:42:10.922173236Z",
+    "event" : "device_online",
+    "detail" : "after 2364 ms"
+  }, {
+    "t_ms" : 32870,
+    "wall" : "2026-10-14T14:42:40.934859705Z",
+    "event" : "device_killed_9",
+    "detail" : "pid 1639"
+  }, {
+    "t_ms" : 32877,
+    "wall" : "2026-10-14T14:42:40.941987754Z",
+    "event" : "mock_killed_9",
+    "detail" : "pid 1612"
+  }, {
+    "t_ms" : 36083,
+    "wall" : "2026-10-14T14:42:44.148278337Z",
+    "event" : "mock_started",
+    "detail" : "pid 1719"
+  }, {
+    "t_ms" : 36084,
+    "wall" : "2026-10-14T14:42:44.149578828Z",
+    "event" : "device_started",
+    "detail" : "pid 1746"
+  }, {
+    "t_ms" : 56086,
+    "wall" : "2026-10-14T14:43:04.147925978Z",
+    "event" : "synced",
+    "detail" : "0 ms"
+  } ],
+  "finished_at" : "2026-10-14T14:43:08.846708778Z",
+  "raw_dir" : "/tmp/w/powercut-2026-10-14T14-42-08"
+}

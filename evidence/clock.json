@@ -1,0 +1,223 @@
+{
+  "scenario" : "clock",
+  "started_at" : "2026-10-14T15:00:09.081766192Z",
+  "environment" : {
+    "os" : "Linux 6.6.87.2-microsoft-standard-WSL2",
+    "arch" : "amd64",
+    "cpus_visible" : 24,
+    "java" : "Eclipse Adoptium 17.0.20.1",
+    "container_hint" : "docker",
+    "mock" : "mock-standin (NOT the official biosignal-mock)",
+    "cloud" : "local cloud jar (SQLite) behind an in-process TCP proxy used to cut the network"
+  },
+  "mock_buffer_seconds_of_data" : 10,
+  "next_index_at_first_jump" : [ 16550, 16627 ],
+  "losses_at_or_after_first_jump" : 0,
+  "losses_before_first_jump" : [ "{\"sensor\": 1, \"from_index\": 0, \"to_index\": 2871, \"reason\": \"buffer_overflow\"}", "{\"sensor\": 2, \"from_index\": 0, \"to_index\": 2984, \"reason\": \"buffer_overflow\"}" ],
+  "note" : "libfaketime slows every JVM it is loaded into (about 2x here: slower start, ~1.2 s commit gaps); losses before the first jump come from that slow start, not from the clock change",
+  "method" : "libfaketime on the mock, cloud and device processes (wall clock only; monotonic clock untouched; kernel clock untouched)",
+  "jumps" : [ {
+    "delta_seconds" : 3600,
+    "exit" : 0,
+    "device_wall_clock_offset_seen_s" : 3600,
+    "spurious_offline_switch_ms" : -1
+  }, {
+    "delta_seconds" : -7200,
+    "exit" : 0,
+    "device_wall_clock_offset_seen_s" : -3600,
+    "spurious_offline_switch_ms" : -1
+  }, {
+    "delta_seconds" : 3600,
+    "exit" : 0,
+    "device_wall_clock_offset_seen_s" : 0,
+    "spurious_offline_switch_ms" : -1
+  } ],
+  "clock_change_took_effect" : true,
+  "no_spurious_mode_switch" : true,
+  "checks" : {
+    "a5d23cee" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "a5d23cee",
+        "generated_per_sensor" : 48835,
+        "ground_truth_note" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator",
+        "checked_up_to_index" : 47929,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 45058,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 2872,
+          "declared_lost_by_reason" : {
+            "buffer_overflow" : 2872
+          },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 44946,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 2985,
+          "declared_lost_by_reason" : {
+            "buffer_overflow" : 2985
+          },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "compared_up_to_index" : 46329,
+        "sensor_1" : {
+          "device_samples" : 45058,
+          "cloud_samples" : 44736,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 44946,
+          "cloud_samples" : 44623,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 2,
+        "cloud_losses" : 2,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "offline" : {
+          "results" : 5,
+          "matched" : 5,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "online" : {
+          "results" : 120,
+          "matched" : 119,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 1
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 125,
+      "device_session_summary" : {
+        "session" : "a5d23cee",
+        "first_seen" : "2026-10-14T15:00:42.124226349Z",
+        "closed" : false,
+        "close_reason" : null,
+        "saved_1" : 45058,
+        "next_index_1" : 47930,
+        "saved_2" : 44946,
+        "next_index_2" : 47931,
+        "loss_ranges" : 2,
+        "cloud_complete" : false
+      }
+    },
+    "final_status" : {
+      "mode" : "online",
+      "daemon" : "running",
+      "pid" : 87,
+      "session" : "a5d23cee",
+      "samples_saved" : 89359,
+      "samples_in_cloud" : 88004,
+      "backlog" : 1355,
+      "current_session" : {
+        "saved_1" : 44736,
+        "saved_2" : 44623,
+        "cloud_1" : 44058,
+        "cloud_2" : 43946,
+        "next_index_1" : 47608,
+        "next_index_2" : 47608,
+        "closed" : false
+      },
+      "catchup_backlog_samples" : 0,
+      "loss_ranges" : 2,
+      "mode_since" : "2026-10-14T15:00:46.772914798Z",
+      "mock_connected" : true,
+      "disk_full" : false,
+      "pending_in_memory" : 0,
+      "max_commit_gap_ms" : [ 1146, 1127 ],
+      "replies_ok" : 300,
+      "corrupt_replies" : 0,
+      "timeouts" : 0,
+      "reconnects" : 1,
+      "stale_replies" : 0,
+      "storage_errors" : 0,
+      "offline_windows" : 5,
+      "uploaded_samples" : 88004,
+      "http_bytes_sent" : 1015572,
+      "last_error" : "live upload: request timed out",
+      "updated_at" : "2026-10-14T15:02:24.759182599Z"
+    },
+    "pass" : true
+  },
+  "pass" : true,
+  "timeline" : [ {
+    "t_ms" : 9793,
+    "wall" : "2026-10-14T15:00:18.876710910Z",
+    "event" : "cloud_started",
+    "detail" : "port 40981, proxy 37041"
+  }, {
+    "t_ms" : 15826,
+    "wall" : "2026-10-14T15:00:24.909514143Z",
+    "event" : "mock_started",
+    "detail" : "pid 59"
+  }, {
+    "t_ms" : 15828,
+    "wall" : "2026-10-14T15:00:24.911302733Z",
+    "event" : "device_started",
+    "detail" : "pid 87"
+  }, {
+    "t_ms" : 37998,
+    "wall" : "2026-10-14T15:00:47.081271160Z",
+    "event" : "device_online",
+    "detail" : "after 22169 ms"
+  }, {
+    "t_ms" : 58004,
+    "wall" : "2026-10-14T15:01:07.085758123Z",
+    "event" : "clock_jump",
+    "detail" : "3600 s (libfaketime offset now 3600 s)"
+  }, {
+    "t_ms" : 80582,
+    "wall" : "2026-10-14T15:01:29.661835471Z",
+    "event" : "clock_jump",
+    "detail" : "-7200 s (libfaketime offset now -3600 s)"
+  }, {
+    "t_ms" : 103137,
+    "wall" : "2026-10-14T15:01:52.216812595Z",
+    "event" : "clock_jump",
+    "detail" : "3600 s (libfaketime offset now 0 s)"
+  }, {
+    "t_ms" : 135683,
+    "wall" : "2026-10-14T15:02:24.761075514Z",
+    "event" : "synced",
+    "detail" : "0 ms"
+  } ],
+  "finished_at" : "2026-10-14T15:02:30.888968369Z",
+  "raw_dir" : "/tmp/w/clock-2026-10-14T15-00-09"
+}
