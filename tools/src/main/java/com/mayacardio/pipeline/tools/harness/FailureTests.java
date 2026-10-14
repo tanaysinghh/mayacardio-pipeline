@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class FailureTests {
+    private static final long MAX_FILL_BYTES = 1L << 30;
     private final Map<String, String> opts;
     private final Path jars;
     private final Path workRoot;
@@ -374,6 +375,11 @@ public final class FailureTests {
         }
         int hold = num("hold", 20);
         Path fs = Path.of(small);
+        long total = Files.getFileStore(fs).getTotalSpace();
+        if (total > MAX_FILL_BYTES) {
+            return Map.of("pass", false, "skipped", "--small-fs " + small + " is " + (total >> 20)
+                    + " MB; refusing to fill a filesystem larger than " + (MAX_FILL_BYTES >> 20) + " MB");
+        }
         rig.dataDir = fs.resolve("device-data-" + System.nanoTime());
         if (opts.containsKey("memory-samples")) {
             rig.deviceExtra.put("disk.full.memory.samples", opts.get("memory-samples"));
@@ -384,7 +390,7 @@ public final class FailureTests {
         long written = 0;
         byte[] mb = new byte[1 << 20];
         try (OutputStream out = Files.newOutputStream(filler)) {
-            while (true) {
+            while (written < MAX_FILL_BYTES) {
                 out.write(mb);
                 written += mb.length;
             }

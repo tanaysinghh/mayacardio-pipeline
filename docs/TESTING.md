@@ -22,9 +22,10 @@
 | `diskfull` | data directory filesystem filled, held, then freed | daemon survives; nothing lost within the memory buffer; beyond it, losses declared as `disk_full`; recovers |
 | `clock` | system clock jumped +1 h, -2 h, +1 h while online | no loss, no spurious mode switch |
 
-`diskfull` and `clock` need Linux (a small tmpfs and `CAP_SYS_TIME`), so they run in the Linux container:
+`diskfull` and `clock` need Linux (a small tmpfs and `CAP_SYS_TIME`), so they run in the Linux container. `diskfull` refuses to run unless `--small-fs` is a filesystem of at most 1 GB, and never writes more than 1 GB. `clock` changes the clock of the whole Docker VM (containers share the kernel clock); it jumps +1 h, -2 h, +1 h so the net change is zero. On Windows Git Bash, set `MSYS_NO_PATHCONV=1` first, otherwise container paths such as `/small` are rewritten into Windows paths:
 
 ```sh
+export MSYS_NO_PATHCONV=1
 docker build -f docker/arm64/Dockerfile -t pipeline-device:amd64 .
 docker run --rm --tmpfs /small:size=64m -v "$PWD/evidence:/out" pipeline-device:amd64 failtest diskfull --small-fs /small --hold 20 --evidence /out --work /tmp/work
 docker run --rm --cap-add SYS_TIME -v "$PWD/evidence:/out" pipeline-device:amd64 failtest clock --allow-clock-change --evidence /out --work /tmp/work

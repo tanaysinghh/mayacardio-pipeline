@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+export MSYS_NO_PATHCONV=1
 
 usage() {
   cat <<'EOF'
@@ -34,11 +35,13 @@ test -f dist/device-1.0.0-all.jar || { echo "build first: ./mvnw -DskipTests pac
 docker buildx build --platform linux/arm64 -f docker/arm64/Dockerfile -t pipeline-device:arm64 --load .
 mkdir -p evidence/resources
 OUT="$REPO/evidence/resources/out-$NAME"
+MOUNT="$OUT"
+command -v cygpath >/dev/null 2>&1 && MOUNT="$(cygpath -m "$OUT")"
 mkdir -p "$OUT"
 docker run --rm --platform linux/arm64 --cpus 4 --memory 2g --memory-swap 2g \
-  --add-host host.docker.internal:host-gateway \
+  --add-host host.docker.internal:host-gateway --tmpfs /run/pipeline \
   -e CLOUD_URL="$CLOUD_URL" -e CLOUD_TOKEN="$TOKEN" \
   -e MEASURE_SECONDS="$SECONDS_TO_MEASURE" -e MEASURE_NAME="$NAME" -e WARMUP_SECONDS=60 \
-  -v "$OUT:/out" pipeline-device:arm64 device
+  -v "$MOUNT:/out" pipeline-device:arm64 device
 cp "$OUT/$NAME.json" "evidence/resources/$NAME.json"
 echo "wrote evidence/resources/$NAME.json"

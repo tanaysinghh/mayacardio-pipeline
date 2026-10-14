@@ -70,20 +70,20 @@ app_bytes() {
   fi
 }
 
-T0=$(date +%s.%N)
+T0=$(awk '{print $1}' /proc/uptime)
 C0=$(cpu_ticks "$PID"); W0=$(wbytes "$PID"); RX0=$(dev_field 2); TX0=$(dev_field 10); A0=$(app_bytes)
 MC0=0; MW0=0
 if [ -n "$MOCK_PID" ]; then MC0=$(cpu_ticks "$MOCK_PID"); MW0=$(wbytes "$MOCK_PID"); fi
 PEAK=$(rss_kb "$PID"); SUMRSS=0; N=0; RESTARTED=0
-END=$(( $(date +%s) + DURATION ))
+END=$(awk -v d="$DURATION" '{print int($1) + d}' /proc/uptime)
 echo "measuring pid $PID (mock ${MOCK_PID:-none}) on iface ${IFACE:-?} for ${DURATION}s -> $OUT" >&2
-while [ "$(date +%s)" -lt "$END" ]; do
+while [ "$(awk '{print int($1)}' /proc/uptime)" -lt "$END" ]; do
   sleep "$INTERVAL"
   if [ ! -d "/proc/$PID" ]; then RESTARTED=1; break; fi
   R=$(rss_kb "$PID"); SUMRSS=$((SUMRSS + R)); N=$((N + 1))
   if [ "$R" -gt "$PEAK" ]; then PEAK=$R; fi
 done
-T1=$(date +%s.%N)
+T1=$(awk '{print $1}' /proc/uptime)
 if [ -d "/proc/$PID" ]; then
   C1=$(cpu_ticks "$PID"); W1=$(wbytes "$PID"); HWM=$(hwm_kb "$PID")
 else
