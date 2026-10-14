@@ -11,3 +11,4 @@ run/
 *.db-wal
 *.db-shm
 .mvn/wrapper/maven-wrapper.jar
+dependency-reduced-pom.xml
