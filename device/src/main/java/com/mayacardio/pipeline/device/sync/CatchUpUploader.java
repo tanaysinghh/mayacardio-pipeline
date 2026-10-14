@@ -95,6 +95,7 @@ public final class CatchUpUploader implements Runnable {
                     more = pass();
                 } catch (IOException e) {
                     state.setLastError("catch-up: " + e.getMessage());
+                    System.out.println(Clocks.wallIso() + " catch-up failed: " + e.getMessage());
                     monitor.reportFailure();
                 } catch (SQLException | RuntimeException e) {
                     state.setLastError("catch-up: " + e);

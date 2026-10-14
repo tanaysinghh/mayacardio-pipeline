@@ -25,7 +25,7 @@ public final class MockServer implements AutoCloseable {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Generator generator;
-    private final double speed;
+    private volatile double speed;
     private final long durationSeconds;
     private final int bufferSeconds;
     private final Path groundTruthDir;
@@ -161,7 +161,7 @@ public final class MockServer implements AutoCloseable {
     public synchronized String restart() {
         MockSession old = session;
         writeGroundTruth(old, true);
-        session = new MockSession(generator, speed, durationSeconds, bufferSeconds);
+        session = new MockSession(generator, old.speed(), durationSeconds, bufferSeconds);
         Socket c = client;
         if (c != null) {
             try {
@@ -194,6 +194,10 @@ public final class MockServer implements AutoCloseable {
                 int sensor = Integer.parseInt(p[1]);
                 session.startOutage(sensor, Double.parseDouble(p[2]));
                 return "{\"ok\": true}";
+            }
+            case "speed" -> {
+                session.setSpeed(Double.parseDouble(p[1]));
+                return "{\"ok\": true, \"head\": " + session.head() + "}";
             }
             case "restart" -> {
                 return "{\"ok\": true, \"session_id\": \"" + restart() + "\"}";

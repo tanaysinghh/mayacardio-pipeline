@@ -1,0 +1,25 @@
+[Unit]
+Description=MayaCardio biosignal pipeline (collector, local storage, cloud uploader)
+After=local-fs.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=pipeline
+Group=pipeline
+UMask=0007
+Environment=PIPELINE_HOME=/opt/pipeline
+ExecStart=/opt/pipeline/bin/pipeline run --config /etc/pipeline/pipeline.conf
+Restart=always
+RestartSec=1
+RuntimeDirectory=pipeline
+RuntimeDirectoryMode=0755
+StateDirectory=pipeline
+StateDirectoryMode=0770
+TimeoutStopSec=15
+LimitNOFILE=4096
+MemoryMax=700M
+OOMScoreAdjust=-500
+
+[Install]
+WantedBy=multi-user.target

@@ -17,6 +17,7 @@ public final class ToolsMain {
             case "check-standin" -> CheckStandin.main(rest);
             case "compare" -> CompareExports.main(rest);
             case "check-results" -> CheckResults.main(rest);
+            case "failtest" -> com.mayacardio.pipeline.tools.harness.FailureTests.main(rest);
             default -> {
                 usage();
                 System.exit(2);
@@ -29,6 +30,7 @@ public final class ToolsMain {
                 pipeline-tools <command>
                   check-standin  --export FILE --gt GT.json [--report OUT] [--until-index N]
                   compare        --device FILE --cloud FILE [--report OUT]
-                  check-results  --export FILE --results FILE [--report OUT]""");
+                  check-results  --export FILE --results FILE [--report OUT]
+                  failtest       <scenario[,scenario]|all> --jars DIR [--work DIR] [--evidence DIR] [scenario options]""");
     }
 }

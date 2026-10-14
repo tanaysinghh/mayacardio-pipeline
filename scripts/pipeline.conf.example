@@ -1,0 +1,14 @@
+mock.host=127.0.0.1
+mock.port=7100
+data.dir=/var/lib/pipeline
+run.dir=/run/pipeline
+cloud.url=https://YOUR-CLOUD-HOST
+cloud.token=CHANGE-ME-SAME-AS-CLOUD_API_TOKEN
+poll.interval.ms=500
+heartbeat.interval.ms=2000
+heartbeat.timeout.ms=1500
+heartbeat.fail.threshold=2
+heartbeat.ok.threshold=2
+live.interval.ms=1000
+catchup.chunk.samples=40000
+catchup.parallel=2

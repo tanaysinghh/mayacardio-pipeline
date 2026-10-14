@@ -1,0 +1,16 @@
+[Unit]
+Description=biosignal-mock STAND-IN (testing only; replace with the official biosignal-mock)
+After=local-fs.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=pipeline
+Group=pipeline
+ExecStart=/usr/bin/java -Xmx128m -XX:+UseSerialGC -jar /opt/pipeline/lib/biosignal-mock-standin.jar --mode signal --seed 7 --duration 3600 --port 7100 --ground-truth-dir /var/lib/pipeline-mock-gt
+Restart=always
+RestartSec=1
+StateDirectory=pipeline-mock-gt
+
+[Install]
+WantedBy=multi-user.target

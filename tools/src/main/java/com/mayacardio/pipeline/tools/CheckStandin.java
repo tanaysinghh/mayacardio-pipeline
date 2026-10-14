@@ -49,11 +49,16 @@ public final class CheckStandin {
     public static Map<String, Object> check(ExportData d, JsonNode gt, Long untilIndex) {
         Generator gen = new Generator(gt.get("mode").asText(), gt.get("seed").asLong());
         long generated = gt.get("generated").asLong();
+        boolean ended = gt.path("ended").asBoolean(false);
+        if (!ended && untilIndex == null) {
+            generated = Math.max(generated, Math.max(d.maxIndex(1), d.maxIndex(2)) + 1);
+        }
         long limit = untilIndex == null ? generated : Math.min(generated, untilIndex + 1);
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("tool", "check-standin (stand-in for check_ground_truth)");
         out.put("session_id", gt.get("session_id").asText());
         out.put("generated_per_sensor", generated);
+        out.put("ground_truth_note", ended ? "session ended in ground truth" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator");
         out.put("checked_up_to_index", limit - 1);
         boolean pass = d.malformedLines == 0;
         out.put("malformed_lines", d.malformedLines);

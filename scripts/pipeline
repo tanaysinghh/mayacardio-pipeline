@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+PIPELINE_HOME="${PIPELINE_HOME:-/opt/pipeline}"
+JAR="$PIPELINE_HOME/lib/device-1.0.0-all.jar"
+JAVA="${JAVA:-java}"
+RUN_AS="${PIPELINE_USER:-pipeline}"
+
+if [ "$(id -u)" -eq 0 ] && id "$RUN_AS" >/dev/null 2>&1 && [ "${PIPELINE_ALLOW_ROOT:-0}" != "1" ]; then
+  exec runuser -u "$RUN_AS" -- "$0" "$@"
+fi
+if [ "$(id -u)" -ne 0 ] && [ "$(id -un)" != "$RUN_AS" ] && id "$RUN_AS" >/dev/null 2>&1 && [ "${PIPELINE_ALLOW_ROOT:-0}" != "1" ]; then
+  exec sudo -n -u "$RUN_AS" "$0" "$@"
+fi
+
+if [ "$1" = "run" ]; then
+  OPTS="${PIPELINE_DAEMON_JAVA_OPTS:--Xms32m -Xmx192m -XX:MaxMetaspaceSize=96m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Xss512k}"
+else
+  OPTS="${PIPELINE_CLI_JAVA_OPTS:--Xmx256m -XX:+UseSerialGC -XX:TieredStopAtLevel=1}"
+fi
+exec "$JAVA" $OPTS -jar "$JAR" "$@"

@@ -61,6 +61,7 @@ public final class LiveUploader implements Runnable {
                     cycle();
                 } catch (IOException e) {
                     state.setLastError("live upload: " + e.getMessage());
+                    System.out.println(Clocks.wallIso() + " live upload failed: " + e.getMessage());
                     monitor.reportFailure();
                 } catch (SQLException | RuntimeException e) {
                     state.setLastError("live upload: " + e);

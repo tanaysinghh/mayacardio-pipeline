@@ -37,13 +37,23 @@ public final class CompareExports {
     }
 
     public static Map<String, Object> compare(ExportData device, ExportData cloud) {
+        return compare(device, cloud, null);
+    }
+
+    public static Map<String, Object> compare(ExportData device, ExportData cloud, Long untilIndex) {
         Map<String, Object> out = new LinkedHashMap<>();
+        if (untilIndex != null) {
+            out.put("compared_up_to_index", untilIndex);
+        }
         boolean identical = device.malformedLines == 0 && cloud.malformedLines == 0;
         for (int sensor = 1; sensor <= 2; sensor++) {
             long missing = 0;
             long extra = 0;
             long mismatch = 0;
             long max = Math.max(device.maxIndex(sensor), cloud.maxIndex(sensor));
+            if (untilIndex != null) {
+                max = Math.min(max, untilIndex);
+            }
             for (int i = 0; i <= max; i++) {
                 boolean inD = device.present[sensor].get(i);
                 boolean inC = cloud.present[sensor].get(i);
@@ -66,8 +76,18 @@ public final class CompareExports {
             identical &= missing == 0 && extra == 0 && mismatch == 0 && device.duplicates[sensor] == 0 && cloud.duplicates[sensor] == 0;
             out.put("sensor_" + sensor, s);
         }
-        Set<LossRange> dl = new HashSet<>(device.losses);
-        Set<LossRange> cl = new HashSet<>(cloud.losses);
+        Set<LossRange> dl = new HashSet<>();
+        Set<LossRange> cl = new HashSet<>();
+        for (LossRange l : device.losses) {
+            if (untilIndex == null || l.fromIndex() <= untilIndex) {
+                dl.add(l);
+            }
+        }
+        for (LossRange l : cloud.losses) {
+            if (untilIndex == null || l.fromIndex() <= untilIndex) {
+                cl.add(l);
+            }
+        }
         out.put("device_losses", dl.size());
         out.put("cloud_losses", cl.size());
         out.put("losses_equal", dl.equals(cl));

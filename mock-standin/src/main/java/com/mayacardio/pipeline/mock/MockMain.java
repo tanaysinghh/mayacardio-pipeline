@@ -57,6 +57,6 @@ public final class MockMain {
                   --mode signal|ramp  --seed N  --duration SECONDS (0 = unlimited)  --port N
                   --control-port N (default port+1, -1 disables)  --speed FACTOR  --buffer-seconds N
                   --ground-truth-dir DIR
-                control port accepts lines: stall SECONDS | corrupt N | duplicate N | outage SENSOR SECONDS | restart | status""");
+                control port accepts lines: stall SECONDS | corrupt N | duplicate N | outage SENSOR SECONDS | speed FACTOR | restart | status""");
     }
 }

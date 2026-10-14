@@ -82,14 +82,19 @@ public final class Main {
     }
 
     private static boolean daemonRunning(DeviceConfig cfg) {
-        try {
-            FileLock lock = Daemon.lock(cfg.dataDir());
+        Path lockFile = cfg.dataDir().resolve("pipeline.lock");
+        if (!Files.exists(lockFile)) {
+            return false;
+        }
+        try (java.nio.channels.FileChannel ch = java.nio.channels.FileChannel.open(lockFile, java.nio.file.StandardOpenOption.READ)) {
+            FileLock lock = ch.tryLock(0, Long.MAX_VALUE, true);
             if (lock == null) {
                 return true;
             }
             lock.release();
-            lock.channel().close();
             return false;
+        } catch (java.nio.channels.OverlappingFileLockException e) {
+            return true;
         } catch (IOException e) {
             return false;
         }

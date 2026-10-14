@@ -12,9 +12,10 @@ public final class MockSession {
 
     private final String id;
     private final Generator generator;
-    private final long startNanos;
+    private long anchorNanos;
+    private long anchorHead;
     private final long startedAtMillis;
-    private final double speed;
+    private double speed;
     private final long totalSamples;
     private final long bufferSamples;
     private final long[] cursor = new long[3];
@@ -24,7 +25,8 @@ public final class MockSession {
     public MockSession(Generator generator, double speed, long durationSeconds, int bufferSeconds) {
         this.id = newId();
         this.generator = generator;
-        this.startNanos = System.nanoTime();
+        this.anchorNanos = System.nanoTime();
+        this.anchorHead = 0;
         this.startedAtMillis = System.currentTimeMillis();
         this.speed = speed;
         this.totalSamples = durationSeconds <= 0 ? Long.MAX_VALUE : durationSeconds * Generator.RATE;
@@ -48,8 +50,15 @@ public final class MockSession {
         return startedAtMillis;
     }
 
-    public double speed() {
+    public synchronized double speed() {
         return speed;
+    }
+
+    public synchronized void setSpeed(double newSpeed) {
+        long h = head();
+        anchorHead = h;
+        anchorNanos = System.nanoTime();
+        speed = newSpeed;
     }
 
     public long totalSamples() {
@@ -61,8 +70,8 @@ public final class MockSession {
     }
 
     public synchronized long head() {
-        double elapsed = (System.nanoTime() - startNanos) / 1e9;
-        long h = (long) Math.floor(elapsed * Generator.RATE * speed);
+        double elapsed = (System.nanoTime() - anchorNanos) / 1e9;
+        long h = anchorHead + (long) Math.floor(elapsed * Generator.RATE * speed);
         return Math.min(h, totalSamples);
     }
 

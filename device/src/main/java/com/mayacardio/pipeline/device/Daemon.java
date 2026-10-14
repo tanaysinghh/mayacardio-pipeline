@@ -78,15 +78,16 @@ public final class Daemon {
         LiveUploader live = null;
         CatchUpUploader catchup = null;
         ConnectivityMonitor monitor = null;
+        CloudClient uploadClient = null;
         if (!cfg.cloudUrl().isEmpty()) {
             CloudClient heartbeatClient = new CloudClient(cfg.cloudUrl(), cfg.cloudToken(), state.bytesSent);
-            CloudClient uploadClient = new CloudClient(cfg.cloudUrl(), cfg.cloudToken(), state.bytesSent);
+            uploadClient = new CloudClient(cfg.cloudUrl(), cfg.cloudToken(), state.bytesSent);
             monitor = new ConnectivityMonitor(heartbeatClient, state, open(), cfg.heartbeatIntervalMs(),
                     cfg.heartbeatTimeoutMs(), cfg.heartbeatFailThreshold(), cfg.heartbeatOkThreshold());
             live = new LiveUploader(open(), uploadClient, state, monitor, cfg.liveIntervalMs(), cfg.liveSpanSamples(),
                     cfg.uploadTimeoutMs(), liveFrom);
             catchup = new CatchUpUploader(cfg.dbPath(), open(), uploadClient, state, monitor, cfg.catchupChunkSamples(),
-                    cfg.catchupParallel(), Math.max(cfg.uploadTimeoutMs(), 60_000), liveFrom);
+                    cfg.catchupParallel(), Math.max(cfg.uploadTimeoutMs(), 30_000), liveFrom);
         }
         LiveUploader liveRef = live;
         OfflineProcessor offline = new OfflineProcessor(open(), state,
@@ -95,6 +96,8 @@ public final class Daemon {
         StatusWriter status = new StatusWriter(open(), state, cfg.runDir().resolve("status.json"), cfg.statusIntervalMs(),
                 () -> catchupRef == null ? 0 : catchupRef.backlogSamples());
         if (monitor != null) {
+            CloudClient abortable = uploadClient;
+            monitor.onModeChange(m -> abortable.abortAll());
             monitor.onModeChange(offline::onModeChange);
             monitor.onModeChange(m -> status.poke());
             if (catchup != null) {

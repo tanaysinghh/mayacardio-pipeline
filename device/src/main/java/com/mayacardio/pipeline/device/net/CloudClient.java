@@ -39,6 +39,7 @@ public final class CloudClient {
     private final String token;
     private final HttpClient http;
     private final AtomicLong bytesSent;
+    private final java.util.Set<Thread> inFlight = new java.util.HashSet<>();
 
     public CloudClient(String baseUrl, String token, AtomicLong bytesSent) {
         this.base = baseUrl;
@@ -63,8 +64,20 @@ public final class CloudClient {
         return b;
     }
 
+    public void abortAll() {
+        synchronized (inFlight) {
+            for (Thread t : inFlight) {
+                t.interrupt();
+            }
+        }
+    }
+
     private HttpResponse<String> send(HttpRequest r, long bodyBytes) throws IOException {
         bytesSent.addAndGet(bodyBytes + HEADER_ESTIMATE);
+        Thread self = Thread.currentThread();
+        synchronized (inFlight) {
+            inFlight.add(self);
+        }
         try {
             HttpResponse<String> resp = http.send(r, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (resp.statusCode() / 100 != 2) {
@@ -72,8 +85,12 @@ public final class CloudClient {
             }
             return resp;
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("interrupted");
+            throw new IOException("request aborted after connectivity change");
+        } finally {
+            synchronized (inFlight) {
+                inFlight.remove(self);
+            }
+            Thread.interrupted();
         }
     }
 
