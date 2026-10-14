@@ -1,0 +1,210 @@
+{
+  "scenario" : "clock",
+  "started_at" : "2026-10-14T09:31:00.563013016Z",
+  "environment" : {
+    "os" : "Linux 6.6.87.2-microsoft-standard-WSL2",
+    "arch" : "amd64",
+    "cpus_visible" : 24,
+    "java" : "Eclipse Adoptium 17.0.20.1",
+    "container_hint" : "docker",
+    "mock" : "mock-standin (NOT the official biosignal-mock)",
+    "cloud" : "local cloud jar (SQLite) behind an in-process TCP proxy used to cut the network"
+  },
+  "mock_buffer_seconds_of_data" : 10,
+  "jumps" : [ {
+    "delta_seconds" : 3600,
+    "exit" : 0,
+    "spurious_offline_switch_ms" : -1
+  }, {
+    "delta_seconds" : -7200,
+    "exit" : 0,
+    "spurious_offline_switch_ms" : -1
+  }, {
+    "delta_seconds" : 3600,
+    "exit" : 0,
+    "spurious_offline_switch_ms" : -1
+  } ],
+  "no_spurious_mode_switch" : true,
+  "checks" : {
+    "6d6ca0bd" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "6d6ca0bd",
+        "generated_per_sensor" : 37808,
+        "ground_truth_note" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator",
+        "checked_up_to_index" : 36975,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 37176,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 37177,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "compared_up_to_index" : 35375,
+        "sensor_1" : {
+          "device_samples" : 37176,
+          "cloud_samples" : 36776,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 37177,
+          "cloud_samples" : 36779,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 0,
+        "cloud_losses" : 0,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "offline" : {
+          "results" : 1,
+          "matched" : 1,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "online" : {
+          "results" : 92,
+          "matched" : 92,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 93,
+      "device_session_summary" : {
+        "session" : "6d6ca0bd",
+        "first_seen" : "2026-10-14T09:31:03.190919819Z",
+        "closed" : false,
+        "close_reason" : null,
+        "saved_1" : 36976,
+        "next_index_1" : 36976,
+        "saved_2" : 36979,
+        "next_index_2" : 36979,
+        "loss_ranges" : 0,
+        "cloud_complete" : false
+      }
+    },
+    "final_status" : {
+      "mode" : "online",
+      "daemon" : "running",
+      "pid" : 129,
+      "session" : "6d6ca0bd",
+      "samples_saved" : 73955,
+      "samples_in_cloud" : 73555,
+      "backlog" : 400,
+      "current_session" : {
+        "saved_1" : 36976,
+        "saved_2" : 36979,
+        "cloud_1" : 36776,
+        "cloud_2" : 36779,
+        "next_index_1" : 36976,
+        "next_index_2" : 36979,
+        "closed" : false
+      },
+      "catchup_backlog_samples" : 0,
+      "loss_ranges" : 0,
+      "mode_since" : "2026-10-14T09:31:05.200934048Z",
+      "mock_connected" : true,
+      "disk_full" : false,
+      "pending_in_memory" : 0,
+      "max_commit_gap_ms" : [ 508, 514 ],
+      "replies_ok" : 370,
+      "corrupt_replies" : 0,
+      "timeouts" : 0,
+      "reconnects" : 1,
+      "stale_replies" : 0,
+      "storage_errors" : 0,
+      "offline_windows" : 1,
+      "uploaded_samples" : 73555,
+      "http_bytes_sent" : 392090,
+      "last_error" : null,
+      "updated_at" : "2026-10-14T09:32:35.318875027Z"
+    },
+    "pass" : true
+  },
+  "pass" : true,
+  "timeline" : [ {
+    "t_ms" : 2095,
+    "wall" : "2026-10-14T09:31:02.659707420Z",
+    "event" : "cloud_started",
+    "detail" : "port 45849, proxy 44953"
+  }, {
+    "t_ms" : 2306,
+    "wall" : "2026-10-14T09:31:02.870877136Z",
+    "event" : "mock_started",
+    "detail" : "pid 102"
+  }, {
+    "t_ms" : 2309,
+    "wall" : "2026-10-14T09:31:02.874202419Z",
+    "event" : "device_started",
+    "detail" : "pid 129"
+  }, {
+    "t_ms" : 4705,
+    "wall" : "2026-10-14T09:31:05.270455205Z",
+    "event" : "device_online",
+    "detail" : "after 2394 ms"
+  }, {
+    "t_ms" : 24716,
+    "wall" : "2026-10-14T10:31:25.006457086Z",
+    "event" : "clock_jump",
+    "detail" : "3600 s -> exit 0 Wed Oct 14 10:31:25 AM UTC 2026"
+  }, {
+    "t_ms" : 44740,
+    "wall" : "2026-10-14T07:31:45.000647644Z",
+    "event" : "clock_jump",
+    "detail" : "-7200 s -> exit 0 Wed Oct 14 07:31:45 AM UTC 2026"
+  }, {
+    "t_ms" : 64808,
+    "wall" : "2026-10-14T10:32:05.000709423Z",
+    "event" : "clock_jump",
+    "detail" : "3600 s -> exit 0 Wed Oct 14 10:32:05 AM UTC 2026"
+  }, {
+    "t_ms" : 94827,
+    "wall" : "2026-10-14T09:32:35.387368678Z",
+    "event" : "synced",
+    "detail" : "0 ms"
+  } ],
+  "finished_at" : "2026-10-14T09:32:38.637265513Z",
+  "raw_dir" : "/tmp/work/clock-2026-10-14T09-31-00"
+}

@@ -5,6 +5,8 @@ A crash-safe pipeline for a Raspberry Pi 4 class board (ARM64, 4 cores, 2 GB) th
 - Assessment text: [docs/ASSESSMENT_SPEC.md](docs/ASSESSMENT_SPEC.md)
 - Design note (2 pages, guarantees and limits): [docs/DESIGN.md](docs/DESIGN.md)
 - Failure-test evidence: [evidence/SUMMARY.md](evidence/SUMMARY.md)
+- Self-review against the completion criteria and known gaps: [docs/SELF_REVIEW.md](docs/SELF_REVIEW.md)
+- Demo video script: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)
 - Cloud deployment (free tier): [docs/DEPLOY_CLOUD.md](docs/DEPLOY_CLOUD.md)
 - Interpretations and deviations: [DECISIONS.md](DECISIONS.md)
 - AI use: [AI_DISCLOSURE.md](AI_DISCLOSURE.md)

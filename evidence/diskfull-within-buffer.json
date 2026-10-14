@@ -1,0 +1,201 @@
+{
+  "scenario" : "diskfull-within-buffer",
+  "started_at" : "2026-10-14T09:28:44.121164967Z",
+  "environment" : {
+    "os" : "Linux 6.6.87.2-microsoft-standard-WSL2",
+    "arch" : "amd64",
+    "cpus_visible" : 24,
+    "java" : "Eclipse Adoptium 17.0.20.1",
+    "container_hint" : "docker",
+    "mock" : "mock-standin (NOT the official biosignal-mock)",
+    "cloud" : "local cloud jar (SQLite) behind an in-process TCP proxy used to cut the network"
+  },
+  "mock_buffer_seconds_of_data" : 10,
+  "hold_seconds" : 20,
+  "memory_buffer_samples_per_sensor" : "48000 (default)",
+  "ms_to_detect_disk_full" : 1009,
+  "pending_in_memory_while_full" : 16816,
+  "ms_to_recover_after_space_freed" : 1011,
+  "daemon_survived" : true,
+  "checks" : {
+    "5e9ca4f5" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "5e9ca4f5",
+        "generated_per_sensor" : 20528,
+        "ground_truth_note" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator",
+        "checked_up_to_index" : 19773,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 19974,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 19975,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "compared_up_to_index" : 18173,
+        "sensor_1" : {
+          "device_samples" : 19974,
+          "cloud_samples" : 19574,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 19975,
+          "cloud_samples" : 19576,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 0,
+        "cloud_losses" : 0,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "offline" : {
+          "results" : 3,
+          "matched" : 3,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "online" : {
+          "results" : 49,
+          "matched" : 49,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 52,
+      "device_session_summary" : {
+        "session" : "5e9ca4f5",
+        "first_seen" : "2026-10-14T09:28:46.779529373Z",
+        "closed" : false,
+        "close_reason" : null,
+        "saved_1" : 19774,
+        "next_index_1" : 19774,
+        "saved_2" : 19775,
+        "next_index_2" : 19775,
+        "loss_ranges" : 0,
+        "cloud_complete" : false
+      }
+    },
+    "final_status" : {
+      "mode" : "online",
+      "daemon" : "running",
+      "pid" : 128,
+      "session" : "5e9ca4f5",
+      "samples_saved" : 39549,
+      "samples_in_cloud" : 39150,
+      "backlog" : 399,
+      "current_session" : {
+        "saved_1" : 19774,
+        "saved_2" : 19775,
+        "cloud_1" : 19574,
+        "cloud_2" : 19576,
+        "next_index_1" : 19774,
+        "next_index_2" : 19775,
+        "closed" : false
+      },
+      "catchup_backlog_samples" : 0,
+      "loss_ranges" : 0,
+      "mode_since" : "2026-10-14T09:28:48.795278743Z",
+      "mock_connected" : true,
+      "disk_full" : false,
+      "pending_in_memory" : 0,
+      "max_commit_gap_ms" : [ 21523, 21565 ],
+      "replies_ok" : 198,
+      "corrupt_replies" : 0,
+      "timeouts" : 0,
+      "reconnects" : 1,
+      "stale_replies" : 0,
+      "storage_errors" : 0,
+      "offline_windows" : 3,
+      "uploaded_samples" : 39150,
+      "http_bytes_sent" : 200941,
+      "last_error" : null,
+      "updated_at" : "2026-10-14T09:29:35.877966284Z"
+    },
+    "pass" : true
+  },
+  "pass" : true,
+  "timeline" : [ {
+    "t_ms" : 2109,
+    "wall" : "2026-10-14T09:28:46.232053294Z",
+    "event" : "cloud_started",
+    "detail" : "port 35575, proxy 37991"
+  }, {
+    "t_ms" : 2315,
+    "wall" : "2026-10-14T09:28:46.437920132Z",
+    "event" : "mock_started",
+    "detail" : "pid 101"
+  }, {
+    "t_ms" : 2319,
+    "wall" : "2026-10-14T09:28:46.442237560Z",
+    "event" : "device_started",
+    "detail" : "pid 128"
+  }, {
+    "t_ms" : 4734,
+    "wall" : "2026-10-14T09:28:48.857278364Z",
+    "event" : "device_online",
+    "detail" : "after 2412 ms"
+  }, {
+    "t_ms" : 19776,
+    "wall" : "2026-10-14T09:29:03.899159088Z",
+    "event" : "disk_filled",
+    "detail" : "filler 55 MB: No space left on device"
+  }, {
+    "t_ms" : 20785,
+    "wall" : "2026-10-14T09:29:04.908360144Z",
+    "event" : "device_reports_disk_full",
+    "detail" : "1009 ms"
+  }, {
+    "t_ms" : 40795,
+    "wall" : "2026-10-14T09:29:24.916487817Z",
+    "event" : "disk_space_freed"
+  }, {
+    "t_ms" : 41807,
+    "wall" : "2026-10-14T09:29:25.928254035Z",
+    "event" : "device_recovered",
+    "detail" : "1011 ms"
+  } ],
+  "finished_at" : "2026-10-14T09:29:39.201710144Z",
+  "raw_dir" : "/tmp/work/diskfull-within-buffer-2026-10-14T09-28-44"
+}

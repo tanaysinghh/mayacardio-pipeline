@@ -27,7 +27,13 @@ Both are card-free, so nothing can be charged. Limits and how they affect the as
 - **0.1 CPU on Render.** Live streaming is light. Catch-up after a 2-hour outage needs CPU: see the measured CPU cost in "Catch-up on a 0.1 CPU instance" below.
 - **Sleep risk.** Render sleeps after 15 minutes with no inbound request. While the device is online its 2-second heartbeat keeps the service awake. During a device outage longer than 15 minutes the service sleeps, and the first request after the network returns waits about a minute for it to wake. During that minute the device stays offline (it keeps saving and processing locally, nothing is lost), but the "back online within 10 s" criterion would be missed. **Mitigation (manual step):** a free external uptime monitor (for example UptimeRobot, 5-minute interval) calling `https://<service>.onrender.com/health` keeps it awake. This needs an account and is listed in MANUAL_TODO.
 - **Neon scale-to-zero** after 5 minutes idle: the first database query after an idle period waits for the compute to resume (usually well under a few seconds). The heartbeat does not touch the database, so it does not keep Neon awake. 100 CU-hours per month cover about 400 hours of active time at 0.25 CU, enough for an evaluation period but not for months of 24/7 streaming.
-- **Neon egress 5 GB/month.** The cloud reads segments back mainly for window computation (cached in memory) and exports. A full export of one hour is about 20-25 MB of rows read.
+- **Neon egress 5 GB/month.** The cloud reads segments back mainly after a restart (cache warm-up) and for exports; one hour of data is about 11 MB of stored segments.
+
+### Catch-up on a 0.1 CPU instance
+
+In the local 2-hour-backlog run the cloud process used about 10 CPU-seconds to ingest 5.76 million samples and compute 7,200 windows (sampled from the process's CPU time before and after the catch-up). At 0.1 CPU that is roughly 100-120 s of wall time, plus database round trips to Neon (72 batches of ~200 segments, two at a time). The estimate is well inside 15 minutes, but it is an extrapolation: shared vCPUs on free tiers can be slower than the development machine, JIT warm-up on a tiny CPU takes longer, and the network link from the board sets a floor (26.8 MB at 1 Mbit/s is about 3.5 minutes). Verify on the real deployment (MANUAL_TODO 8).
+
+Live streaming needs about 4 KB/s of uploads plus one result per second; the cloud's steady-state CPU for that is small (a few percent of one core locally).
 
 ### Steps
 

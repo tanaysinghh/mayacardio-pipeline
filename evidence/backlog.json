@@ -1,0 +1,483 @@
+{
+  "scenario" : "backlog",
+  "started_at" : "2026-10-14T09:20:49.040719300Z",
+  "environment" : {
+    "os" : "Windows 11 10.0",
+    "arch" : "amd64",
+    "cpus_visible" : 24,
+    "java" : "Eclipse Adoptium 21.0.5",
+    "container_hint" : "none",
+    "mock" : "mock-standin (NOT the official biosignal-mock)",
+    "cloud" : "local cloud jar (SQLite) behind an in-process TCP proxy used to cut the network"
+  },
+  "mock_buffer_seconds_of_data" : 200,
+  "simulated_outage_data_minutes" : 120,
+  "generation_speed_while_offline" : 20.0,
+  "samples_backlog_at_restore" : 5762901,
+  "ms_restore_to_online" : 1089,
+  "ms_restore_to_cloud_copy_complete" : 9148,
+  "http_bytes_sent_during_catchup" : 26826222,
+  "generation_progress" : [ {
+    "t_ms" : 24874,
+    "mock_generated" : 8870,
+    "device_next_index_1" : 8595,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 39879,
+    "mock_generated" : 128918,
+    "device_next_index_1" : 126309,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 54890,
+    "mock_generated" : 249005,
+    "device_next_index_1" : 245925,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 69898,
+    "mock_generated" : 369072,
+    "device_next_index_1" : 357862,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 84901,
+    "mock_generated" : 489091,
+    "device_next_index_1" : 479973,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 99910,
+    "mock_generated" : 609161,
+    "device_next_index_1" : 599409,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 114917,
+    "mock_generated" : 729215,
+    "device_next_index_1" : 721716,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 129932,
+    "mock_generated" : 849338,
+    "device_next_index_1" : 839573,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 144940,
+    "mock_generated" : 969410,
+    "device_next_index_1" : 959707,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 159947,
+    "mock_generated" : 1089460,
+    "device_next_index_1" : 1082309,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 174960,
+    "mock_generated" : 1209561,
+    "device_next_index_1" : 1201691,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 189975,
+    "mock_generated" : 1329685,
+    "device_next_index_1" : 1324323,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 204985,
+    "mock_generated" : 1449769,
+    "device_next_index_1" : 1442626,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 219999,
+    "mock_generated" : 1569861,
+    "device_next_index_1" : 1565188,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 235004,
+    "mock_generated" : 1689910,
+    "device_next_index_1" : 1684654,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 250019,
+    "mock_generated" : 1810038,
+    "device_next_index_1" : 1804328,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 265035,
+    "mock_generated" : 1930143,
+    "device_next_index_1" : 1926589,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 280052,
+    "mock_generated" : 2050301,
+    "device_next_index_1" : 2044969,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 295057,
+    "mock_generated" : 2170343,
+    "device_next_index_1" : 2166738,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 310073,
+    "mock_generated" : 2290467,
+    "device_next_index_1" : 2285355,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 325079,
+    "mock_generated" : 2410506,
+    "device_next_index_1" : 2407186,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 340088,
+    "mock_generated" : 2530582,
+    "device_next_index_1" : 2529570,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 355100,
+    "mock_generated" : 2650669,
+    "device_next_index_1" : 2647749,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 370112,
+    "mock_generated" : 2770784,
+    "device_next_index_1" : 2760360,
+    "pending_in_memory" : 0
+  }, {
+    "t_ms" : 385125,
+    "mock_generated" : 2890872,
+    "device_next_index_1" : 2880538,
+    "pending_in_memory" : 0
+  } ],
+  "drain_progress" : [ {
+    "t_ms_after_restore" : 1105,
+    "backlog" : 5768803,
+    "catchup_backlog_samples" : 0
+  }, {
+    "t_ms_after_restore" : 3120,
+    "backlog" : 5281609,
+    "catchup_backlog_samples" : 5281609
+  }, {
+    "t_ms_after_restore" : 5131,
+    "backlog" : 3521609,
+    "catchup_backlog_samples" : 3521609
+  }, {
+    "t_ms_after_restore" : 7133,
+    "backlog" : 1681609,
+    "catchup_backlog_samples" : 1681609
+  }, {
+    "t_ms_after_restore" : 9148,
+    "backlog" : 0,
+    "catchup_backlog_samples" : 0
+  } ],
+  "note" : "cloud runs on the same machine; network bandwidth is not limited. Bytes sent are reported so time at a given bandwidth can be estimated.",
+  "checks" : {
+    "0073635d" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "0073635d",
+        "generated_per_sensor" : 2902599,
+        "ground_truth_note" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator",
+        "checked_up_to_index" : 2898600,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 2898802,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 2899203,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "compared_up_to_index" : 2897000,
+        "sensor_1" : {
+          "device_samples" : 2898802,
+          "cloud_samples" : 2899604,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 2899203,
+          "cloud_samples" : 2900006,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 0,
+        "cloud_losses" : 0,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "offline" : {
+          "results" : 7214,
+          "matched" : 7214,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "online" : {
+          "results" : 7252,
+          "matched" : 7247,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 5
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 14466,
+      "device_session_summary" : {
+        "session" : "0073635d",
+        "first_seen" : "2026-10-14T09:20:52.275330Z",
+        "closed" : false,
+        "close_reason" : null,
+        "saved_1" : 2898601,
+        "next_index_1" : 2898601,
+        "saved_2" : 2898603,
+        "next_index_2" : 2898603,
+        "loss_ranges" : 0,
+        "cloud_complete" : false
+      }
+    },
+    "final_status" : {
+      "mode" : "online",
+      "daemon" : "running",
+      "pid" : 38480,
+      "session" : "0073635d",
+      "samples_saved" : 5796805,
+      "samples_in_cloud" : 5796805,
+      "backlog" : 0,
+      "current_session" : {
+        "saved_1" : 2898401,
+        "saved_2" : 2898404,
+        "cloud_1" : 2898401,
+        "cloud_2" : 2898404,
+        "next_index_1" : 2898401,
+        "next_index_2" : 2898404,
+        "closed" : false
+      },
+      "catchup_backlog_samples" : 0,
+      "loss_ranges" : 0,
+      "mode_since" : "2026-10-14T09:27:15.293717600Z",
+      "mock_connected" : true,
+      "disk_full" : false,
+      "pending_in_memory" : 0,
+      "max_commit_gap_ms" : [ 520, 528 ],
+      "replies_ok" : 15152,
+      "corrupt_replies" : 0,
+      "timeouts" : 0,
+      "reconnects" : 1,
+      "stale_replies" : 0,
+      "storage_errors" : 0,
+      "offline_windows" : 7214,
+      "uploaded_samples" : 5796805,
+      "http_bytes_sent" : 27014804,
+      "last_error" : "catch-up: request aborted after connectivity change",
+      "updated_at" : "2026-10-14T09:27:33.345350Z"
+    },
+    "pass" : true
+  },
+  "pass" : true,
+  "timeline" : [ {
+    "t_ms" : 2552,
+    "wall" : "2026-10-14T09:20:51.595226400Z",
+    "event" : "cloud_started",
+    "detail" : "port 56487, proxy 55218"
+  }, {
+    "t_ms" : 2772,
+    "wall" : "2026-10-14T09:20:51.814896500Z",
+    "event" : "mock_started",
+    "detail" : "pid 23048"
+  }, {
+    "t_ms" : 2783,
+    "wall" : "2026-10-14T09:20:51.825598300Z",
+    "event" : "device_started",
+    "detail" : "pid 38480"
+  }, {
+    "t_ms" : 5372,
+    "wall" : "2026-10-14T09:20:54.415139100Z",
+    "event" : "device_online",
+    "detail" : "after 2587 ms"
+  }, {
+    "t_ms" : 20379,
+    "wall" : "2026-10-14T09:21:09.422580100Z",
+    "event" : "network_cut"
+  }, {
+    "t_ms" : 24858,
+    "wall" : "2026-10-14T09:21:13.901070300Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 1.0, \"started_at_ms\": 1791969651824, \"generated\": 8830, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 24870,
+    "wall" : "2026-10-14T09:21:13.913698400Z",
+    "event" : "mock_speed",
+    "detail" : "speed 20.0 -> {\"ok\": true, \"head\": 8834}"
+  }, {
+    "t_ms" : 24872,
+    "wall" : "2026-10-14T09:21:13.915041200Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 8870, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 39878,
+    "wall" : "2026-10-14T09:21:28.921769400Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 128918, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 54889,
+    "wall" : "2026-10-14T09:21:43.932058700Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 249005, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 69897,
+    "wall" : "2026-10-14T09:21:58.939781800Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 369072, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 84900,
+    "wall" : "2026-10-14T09:22:13.942459700Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 489091, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 99908,
+    "wall" : "2026-10-14T09:22:28.951822900Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 609161, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 114915,
+    "wall" : "2026-10-14T09:22:43.958820700Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 729215, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 129930,
+    "wall" : "2026-10-14T09:22:58.973235200Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 849338, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 144939,
+    "wall" : "2026-10-14T09:23:13.983043Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 969410, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 159946,
+    "wall" : "2026-10-14T09:23:28.988758300Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 1089460, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 174958,
+    "wall" : "2026-10-14T09:23:44.001874400Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 1209561, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 189974,
+    "wall" : "2026-10-14T09:23:59.017186400Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 1329685, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 204984,
+    "wall" : "2026-10-14T09:24:14.027398200Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 1449769, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 219996,
+    "wall" : "2026-10-14T09:24:29.039544500Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 1569861, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 235002,
+    "wall" : "2026-10-14T09:24:44.045776400Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 1689910, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 250018,
+    "wall" : "2026-10-14T09:24:59.061081900Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 1810038, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 265032,
+    "wall" : "2026-10-14T09:25:14.074987600Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 1930143, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 280051,
+    "wall" : "2026-10-14T09:25:29.093956600Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 2050301, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 295056,
+    "wall" : "2026-10-14T09:25:44.099066900Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 2170343, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 310072,
+    "wall" : "2026-10-14T09:25:59.115177400Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 2290467, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 325077,
+    "wall" : "2026-10-14T09:26:14.119738600Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 2410506, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 340086,
+    "wall" : "2026-10-14T09:26:29.129408800Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 2530582, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 355097,
+    "wall" : "2026-10-14T09:26:44.140315700Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 2650669, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 370111,
+    "wall" : "2026-10-14T09:26:59.154879400Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 2770784, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 385122,
+    "wall" : "2026-10-14T09:27:14.165975900Z",
+    "event" : "mock_status",
+    "detail" : "status -> {\"session_id\": \"0073635d\", \"mode\": \"signal\", \"seed\": 7, \"speed\": 20.0, \"started_at_ms\": 1791969651824, \"generated\": 2890872, \"total\": -1, \"ended\": false, \"outages\": []}"
+  }, {
+    "t_ms" : 385126,
+    "wall" : "2026-10-14T09:27:14.169482100Z",
+    "event" : "mock_speed",
+    "detail" : "speed 1 -> {\"ok\": true, \"head\": 2890903}"
+  }, {
+    "t_ms" : 385250,
+    "wall" : "2026-10-14T09:27:14.292616900Z",
+    "event" : "network_restored"
+  }, {
+    "t_ms" : 394384,
+    "wall" : "2026-10-14T09:27:23.426257Z",
+    "event" : "cloud_copy_complete",
+    "detail" : "9148 ms after restore"
+  } ],
+  "finished_at" : "2026-10-14T09:27:52.282616Z",
+  "raw_dir" : "evidence/raw/final/backlog-2026-10-14T09-20-49"
+}
