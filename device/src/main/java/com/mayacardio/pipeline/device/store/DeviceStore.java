@@ -515,6 +515,13 @@ public final class DeviceStore implements AutoCloseable {
         });
     }
 
+    public synchronized void clearOfflineNext(long sid) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("DELETE FROM offline_progress WHERE sid = ?")) {
+            ps.setLong(1, sid);
+            ps.executeUpdate();
+        }
+    }
+
     private void setOfflineNextInternal(long sid, long next) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO offline_progress(sid, next_window) VALUES(?, ?) ON CONFLICT(sid) DO UPDATE SET next_window = excluded.next_window")) {

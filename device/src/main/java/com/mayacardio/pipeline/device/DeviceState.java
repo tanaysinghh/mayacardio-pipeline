@@ -7,9 +7,10 @@ public final class DeviceState {
     public static final String ONLINE = "online";
     public static final String OFFLINE = "offline";
 
-    private volatile long sid = -1;
-    private volatile String sessionId;
-    private volatile boolean sessionClosed;
+    public record SessionRef(long sid, String sessionId, boolean closed) {
+    }
+
+    private volatile SessionRef session = new SessionRef(-1, null, false);
     public final AtomicLongArray committedNext = new AtomicLongArray(3);
     public final AtomicLongArray storedCount = new AtomicLongArray(3);
     public final AtomicLongArray cloudHeld = new AtomicLongArray(3);
@@ -36,22 +37,24 @@ public final class DeviceState {
     private volatile String lastError;
 
     public synchronized void setSession(long sid, String sessionId, boolean closed) {
-        this.sid = sid;
-        this.sessionId = sessionId;
-        this.sessionClosed = closed;
+        this.session = new SessionRef(sid, sessionId, closed);
         sessionsVersion.incrementAndGet();
     }
 
+    public SessionRef session() {
+        return session;
+    }
+
     public long sid() {
-        return sid;
+        return session.sid();
     }
 
     public String sessionId() {
-        return sessionId;
+        return session.sessionId();
     }
 
     public boolean sessionClosed() {
-        return sessionClosed;
+        return session.closed();
     }
 
     public boolean diskFull() {
