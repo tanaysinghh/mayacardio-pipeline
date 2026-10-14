@@ -1,0 +1,13 @@
+target/
+*.class
+*.log
+.idea/
+*.iml
+.vscode/
+data/
+run/
+/evidence/raw/
+*.db
+*.db-wal
+*.db-shm
+.mvn/wrapper/maven-wrapper.jar
