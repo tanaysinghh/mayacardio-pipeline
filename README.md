@@ -156,15 +156,21 @@ Then, with the GitHub CLI logged in:
 scripts/fetch-ci-evidence.sh            # latest completed run, or pass a run id
 ```
 
-It copies the results into `evidence/arm64-ci/` and `evidence/resources/`, regenerates `evidence/SUMMARY.md` and prints the row for the design note's resource table. Without a `CLOUD_URL` the script starts a local cloud container instead, which is how it was tested on an amd64 machine.
+It adds the results as a new folder under `evidence/arm64-ci-history/` (earlier runs are kept), copies the resource figures into `evidence/resources/`, regenerates `evidence/SUMMARY.md` and prints the row for the design note's resource table. Without a `CLOUD_URL` the script starts a local cloud container instead, which is how it was tested on an amd64 machine.
 
-**Results of run 38730796747** (commit 4a3b665, Neoverse-N2 runner, live Render + Neon cloud; every scenario PASS, 13 of 13 test sessions deleted afterwards; details in [evidence/SUMMARY.md](evidence/SUMMARY.md)):
+**Results** (Neoverse-N2 runner, live Render + Neon cloud, 13 of 13 test sessions deleted after each run; details in [evidence/SUMMARY.md](evidence/SUMMARY.md)):
 
-- Resource run, 1 hour online: 1.07 % of one core, 120.5 MB peak RSS, 264.55 MB/h written, 16.05 MB sent over the hour.
-- Online latency: p50 772 ms, p95 1490 ms, max 2116 ms (none over 5 s).
-- Network cut: offline after 3.5 s; online 3.9 s after the network returns.
-- 2-hour backlog: 5.76 M samples caught up 84 s after restore. The test is accelerated: data is generated at about 20x speed and the stand-in's buffer is raised to 200 s.
-- Render wake-up: 22.9 s and 24.1 s. After an outage over 15 minutes, the switch back to online can take about 25 s unless an uptime pinger keeps the service awake.
-- Power cuts are simulated by SIGKILL.
+| | Run 1: 38730796747, commit 4a3b665, before the polling fix | Run 2: 38759716475, commit f08ec93, after it |
+|---|---|---|
+| Scenarios | all PASS | all PASS except the soak's latency check (below) |
+| Resource run, 1 hour online | 1.07 % of one core, 120.5 MB peak RSS, **264.55 MB/h written**, 16.05 MB sent | 1.00 % of one core, 124.2 MB peak RSS, **178.69 MB/h written**, 16.30 MB sent |
+| Online latency, 3,571 windows | p50 772 ms, p95 1490 ms, max 2116 ms | p50 988 ms, p95 1264 ms, **max 5497 ms (1 window over 5 s)** |
+| Network cut: to offline / back online | 3.5 s / 3.9 s | 3.6 s / 3.8 s |
+| 2-hour backlog caught up (accelerated) | 84 s after restore | 85 s after restore |
+| Simulated power cut, worst loss | 0.44 s | 0.19 s |
+| Render wake-up | 22.9 s and 24.1 s | 23.0 s and 22.9 s |
 
-The disk-write figure includes a polling inefficiency that was fixed after the run (design note, "Why 265 vs 176 MB/h"). A local run of the same setup with the fix wrote 186 MB/h, against 286 MB/h before it.
+- The backlog test is accelerated: data is generated at about 20x speed and the stand-in's buffer is raised to 200 s. Power cuts are simulated by SIGKILL.
+- After an outage over 15 minutes, the switch back to online can take about 25 s unless an uptime pinger keeps the service awake.
+- The polling fix (design note, "Why 265 vs 176 MB/h") brought the native ARM64 disk-write figure from 264.55 to 178.69 MB/h.
+- Run 2's job failed on one result: window 3088 of the hour-long soak (ending about 21:47 IST) appeared in the cloud after 5.5 s, over the 5 s target. Every data-integrity check passed. The cause is **not determined**: no upload failed or timed out, the device did not stall, and the cloud logged no error and did not restart. The evidence fits one ingest round trip taking about 4.5 s, but not what held it (design note, "Online latency near-miss").
