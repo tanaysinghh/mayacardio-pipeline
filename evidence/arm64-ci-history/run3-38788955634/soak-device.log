@@ -1,0 +1,8 @@
+2026-10-15T18:53:48.072048847Z pipeline starting: mock 127.0.0.1:7100, data /work/soak-2026-10-15T18-53-46/device-data, cloud https://mayacardio-pipeline-cloud.onrender.com
+2026-10-15T18:53:50.910290301Z mode -> online
+2026-10-15T18:53:54.407547434Z slow live upload: started 2026-10-15T18:53:51.250395133Z, 10446 bytes, 2375 samples, connect 19 ms, first response byte 3155 ms, total 3156 ms, attempts 1
+2026-10-15T18:56:39.513388203Z slow live upload: started 2026-10-15T18:56:37.235255558Z, 3832 bytes, 800 samples, connect 1 ms, first response byte 2278 ms, total 2278 ms, attempts 1
+2026-10-15T19:39:54.065568401Z slow live upload: started 2026-10-15T19:39:50.066178218Z, 3667 bytes, 800 samples, connect 0 ms, first response byte 3999 ms, total 3999 ms, attempts 1
+2026-10-15T19:53:47.952975616Z slow live upload: started 2026-10-15T19:53:45.389212019Z, 3610 bytes, 800 samples, connect 0 ms, first response byte 2563 ms, total 2564 ms, attempts 1
+2026-10-15T19:54:06.315910231Z slow live upload: started 2026-10-15T19:54:02.048843621Z, 3601 bytes, 800 samples, connect 0 ms, first response byte 4267 ms, total 4267 ms, attempts 1
+2026-10-15T19:54:09.326168225Z slow live upload: started 2026-10-15T19:54:07.318901632Z, 3617 bytes, 800 samples, connect 0 ms, first response byte 2007 ms, total 2007 ms, attempts 1

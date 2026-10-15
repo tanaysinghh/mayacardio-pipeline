@@ -1,0 +1,1 @@
+{"command": "./mvnw -B -ntp verify", "java": "openjdk version 17.0.20.1 2026-08-18", "machine": "aarch64 (native)", "tests": 85, "failures": 0, "errors": 0, "skipped": 0, "postgres_tests": "against a postgres:16 service container", "seconds": 128}

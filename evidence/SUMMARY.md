@@ -91,6 +91,31 @@ Latency (online windows, `computed_at` minus the time the window's last sample w
 - netcut: 26 windows, p50 1533 ms, p95 1915 ms, max 1915 ms, over 5 s: 0
 - soak: 3571 windows, p50 988 ms, p95 1264 ms, max 5497 ms, over 5 s: 1
 
+### Run 3, soak only, with slow-upload logging
+
+GitHub run 38788955634, commit `79480b6`, workflow conclusion: success. Files: `arm64-ci-history/run3-38788955634/`. Note: repeats only the 1-hour soak (scenarios off, no idle wake test) on a commit that adds only diagnostic logging over run 2: since f08ec93 the cloud is unchanged, the device only times and logs live uploads (3f2a988) and the test tools only write the latency CSV and summaries; the scenario results remain those of runs 1 and 2. 0 of 3,570 online windows over 5 s (max 4,074 ms, window 2761, ending 01:09:49.812 IST). The device logged 6 live uploads acknowledged after more than 2 s (max 4,267 ms), all on a reused connection (connect 0-1 ms, except the first upload of the run, 19 ms) with 1 attempt and the whole wait before the first response byte; in 2 of them the cloud finished storing the batch 2.2 s and 3.8 s after the device began sending, in 3 it stored it within 0.18 s and the reply took 1.8-4.1 s more to arrive, and the first upload of the run (00:23:51 IST, right after the cloud woke) has no window to compare with. Where the wait occurred inside each of those legs (network, Render's proxy, the cloud process or Neon) is not recorded.
+
+Runner: Neoverse-N2 (vendor ARM, CPU part 0xd49), 4 CPUs, 15947 MB, aarch64, kernel 6.17.0-1022-azure; run 38788955634, commit `79480b67e335edae4bfe7a7f6de64f66f6c96061`, cloud https://mayacardio-pipeline-cloud.onrender.com. Full `uname -a`, `lscpu` and `/proc/cpuinfo`: `arm64-ci-history/run3-38788955634/environment.txt`.
+
+- cloud-wake-at-start: 22.94 s to the first HTTP 200 (first request of this run, before any test traffic); inferred asleep before: true; a warm request afterwards took 0.287559 s
+- cloud clean-up: 2 of 2 test sessions deleted, 0 failed
+- per-window latency of the soak, times in IST and UTC: `arm64-ci-history/run3-38788955634/soak-latency.csv` (3652 windows)
+- soak device log `arm64-ci-history/run3-38788955634/soak-device.log`: 6 live uploads acknowledged after more than 2 s
+  - `2026-10-15T18:53:54.407547434Z slow live upload: started 2026-10-15T18:53:51.250395133Z, 10446 bytes, 2375 samples, connect 19 ms, first response byte 3155 ms, total 3156 ms, attempts 1`
+  - `2026-10-15T18:56:39.513388203Z slow live upload: started 2026-10-15T18:56:37.235255558Z, 3832 bytes, 800 samples, connect 1 ms, first response byte 2278 ms, total 2278 ms, attempts 1`
+  - `2026-10-15T19:39:54.065568401Z slow live upload: started 2026-10-15T19:39:50.066178218Z, 3667 bytes, 800 samples, connect 0 ms, first response byte 3999 ms, total 3999 ms, attempts 1`
+  - `2026-10-15T19:53:47.952975616Z slow live upload: started 2026-10-15T19:53:45.389212019Z, 3610 bytes, 800 samples, connect 0 ms, first response byte 2563 ms, total 2564 ms, attempts 1`
+  - `2026-10-15T19:54:06.315910231Z slow live upload: started 2026-10-15T19:54:02.048843621Z, 3601 bytes, 800 samples, connect 0 ms, first response byte 4267 ms, total 4267 ms, attempts 1`
+  - `2026-10-15T19:54:09.326168225Z slow live upload: started 2026-10-15T19:54:07.318901632Z, 3617 bytes, 800 samples, connect 0 ms, first response byte 2007 ms, total 2007 ms, attempts 1`
+
+| Scenario | Result | Key measurements | Ground truth (per session) | Device = cloud | Results vs reference |
+|---|---|---|---|---|---|
+| soak | PASS | external_cloud_note=<br>mock_buffer_seconds_of_data=10<br>ms_until_external_cloud_healthy=587<br>minutes=60<br>mock_restarts_after_session_end=1<br>max_backlog_samples_seen=1600<br>cpu=0.95% of one core, peak_rss=124.8 MB, written=183.3 MB/h, iface_sent=16.05 MB in 3602.2 s | 7abcca95 ok: s1 saved 1440000, silent 0, dup 0, wrong 0, declared {}; s2 saved 1440000, silent 0, dup 0, wrong 0, declared {}; <br>03d9f861 ok: s1 saved 20375, silent 0, dup 0, wrong 0, declared {}; s2 saved 20376, silent 0, dup 0, wrong 0, declared {};  | identical<br>identical | online 3599/3600 matched, 0 mismatched, 1 not verifiable; offline 2/2 matched, 0 mismatched, 0 not verifiable; <br>online 50/52 matched, 0 mismatched, 2 not verifiable;  |
+
+Latency (online windows, `computed_at` minus the time the window's last sample was generated, windows near disruptions excluded):
+
+- soak: 3570 windows, p50 1130 ms, p95 1441 ms, max 4074 ms, over 5 s: 0
+
 ## Resource figures
 
 Online mode, stand-in mock started with `--duration 3600`, container limited to 4 CPUs and 2 GB, `scripts/measure-resources.sh`. None of these is a Raspberry Pi 4 figure.
@@ -101,6 +126,7 @@ Online mode, stand-in mock started with `--duration 3600`, container limited to 
 | arm64-emulated-online-1h | aarch64 | 3602 | 6.26 | 1.57 | 269.6 | 172.66 | 15.2 |
 | arm64-native-ci-run1-before-fix-60min | aarch64 | 3602 | 1.07 | 0.27 | 120.5 | 264.55 | 16.0 |
 | arm64-native-ci-run2-after-fix-60min | aarch64 | 3602 | 1.0 | 0.25 | 124.2 | 178.69 | 16.3 |
+| arm64-native-ci-run3-soak-only-60min | aarch64 | 3602 | 0.95 | 0.24 | 124.8 | 183.3 | 16.0 |
 
 How they relate to a Raspberry Pi 4 (Cortex-A72, 1.5-1.8 GHz, SD card):
 

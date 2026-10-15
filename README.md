@@ -158,26 +158,34 @@ scripts/fetch-ci-evidence.sh            # latest completed run, or pass a run id
 
 It adds the results as a new folder under `evidence/arm64-ci-history/` (earlier runs are kept), copies the resource figures into `evidence/resources/`, regenerates `evidence/SUMMARY.md` and prints the row for the design note's resource table. Without a `CLOUD_URL` the script starts a local cloud container instead, which is how it was tested on an amd64 machine.
 
-**Results** (Neoverse-N2 runner, live Render + Neon cloud, 13 of 13 test sessions deleted after each run; details in [evidence/SUMMARY.md](evidence/SUMMARY.md)):
+**Results** (Neoverse-N2 runner, live Render + Neon cloud; every test session deleted after each run: 13 of 13 in runs 1 and 2, 2 of 2 in run 3; details in [evidence/SUMMARY.md](evidence/SUMMARY.md)):
 
-| | Run 1: 38730796747, commit 4a3b665, before the polling fix | Run 2: 38759716475, commit f08ec93, after it |
-|---|---|---|
-| Scenarios | all PASS | all PASS except the soak's latency check (below) |
-| Resource run, 1 hour online | 1.07 % of one core, 120.5 MB peak RSS, **264.55 MB/h written**, 16.05 MB sent | 1.00 % of one core, 124.2 MB peak RSS, **178.69 MB/h written**, 16.30 MB sent |
-| Online latency, 3,571 windows | p50 772 ms, p95 1490 ms, max 2116 ms | p50 988 ms, p95 1264 ms, **max 5497 ms (1 window over 5 s)** |
-| Network cut: to offline / back online | 3.5 s / 3.9 s | 3.6 s / 3.8 s |
-| 2-hour backlog caught up (accelerated) | 84 s after restore | 85 s after restore |
-| Simulated power cut, worst loss | 0.44 s | 0.19 s |
-| Render wake-up | 22.9 s and 24.1 s | 23.0 s and 22.9 s |
+| | Run 1: 38730796747, commit 4a3b665, before the polling fix | Run 2: 38759716475, commit f08ec93, after it | Run 3: 38788955634, commit 79480b6, **soak only**, logging-only commit |
+|---|---|---|---|
+| Scenarios | all PASS | all PASS except the soak's latency check (below) | soak only: PASS (no other scenario run) |
+| Resource run, 1 hour online | 1.07 % of one core, 120.5 MB peak RSS, **264.55 MB/h written**, 16.05 MB sent | 1.00 % of one core, 124.2 MB peak RSS, **178.69 MB/h written**, 16.30 MB sent | 0.95 % of one core, 124.8 MB peak RSS, **183.30 MB/h written**, 16.05 MB sent |
+| Soak data checks (both sessions) | 0 lost, 0 duplicates, device = cloud | 0 lost, 0 duplicates, device = cloud | 0 lost, 0 duplicates, device = cloud |
+| Online latency (soak) | 3,571 windows: p50 772 ms, p95 1490 ms, max 2116 ms | 3,571 windows: p50 988 ms, p95 1264 ms, **max 5497 ms (1 window over 5 s)** | 3,570 windows: p50 1130 ms, p95 1441 ms, p99 1564 ms, max 4074 ms, 0 over 5 s |
+| Network cut: to offline / back online | 3.5 s / 3.9 s | 3.6 s / 3.8 s | not run |
+| 2-hour backlog caught up (accelerated) | 84 s after restore | 85 s after restore | not run |
+| Simulated power cut, worst loss | 0.44 s | 0.19 s | not run |
+| Render wake-up | 22.9 s and 24.1 s | 23.0 s and 22.9 s | 22.9 s (at start only) |
 
 - The backlog test is accelerated: data is generated at about 20x speed and the stand-in's buffer is raised to 200 s. Power cuts are simulated by SIGKILL.
 - After an outage over 15 minutes, the switch back to online can take about 25 s unless an uptime pinger keeps the service awake.
-- The polling fix (design note, "Why 265 vs 176 MB/h") brought the native ARM64 disk-write figure from 264.55 to 178.69 MB/h.
+- The polling fix (design note, "Why 265 vs 176 MB/h") brought the native ARM64 disk-write figure from 264.55 to 178.69 MB/h (183.30 MB/h in run 3).
 - Run 2's job failed on one result: window 3088 of the hour-long soak (ending about 21:47 IST) appeared in the cloud after 5.5 s, over the 5 s target. Every data-integrity check passed. The cause is **not determined**: no upload failed or timed out, the device did not stall, and the cloud logged no error and did not restart. The evidence fits one ingest round trip taking about 4.5 s, but not what held it (design note, "Online latency near-miss").
 
-**Run 3 (prepared, soak only, diagnostics).** To show where the time goes if a slow window happens again, commit 3f2a988 adds logging only; pipeline behaviour and every timeout are unchanged:
+**Run 3 covers only the soak** and ran on a commit that adds logging only (3f2a988; 79480b6 changes only documentation). Since run 2 the cloud is unchanged, pipeline behaviour and every timeout are unchanged, and the test tools only gained the latency CSV and summary output; the failure-scenario evidence remains that of runs 1 and 2. It added two diagnostics:
 
 - The device logs one line whenever a live upload is acknowledged after more than 2 s: when it started, its size, the time until the HTTP connection was ready (DNS and TCP for a new connection, about 0 for a reused one; TLS is not included here but in the next figure), the time to the first response byte, the total, and the number of attempts. The status file adds `max_live_upload_ms` and `slow_live_uploads`.
-- The soak writes `soak-latency.csv`: one row per window with its end time in IST and UTC, the latency, when the device built the batch the cloud last received and when the cloud received it (both relative to the window end), and whether the window was left out of the figures. It also copies the device log into the results as `soak-device.log`. The pass/fail checks and the 5 s threshold are unchanged.
+- The soak writes `soak-latency.csv`: one row per window with its end time in IST and UTC, the latency, when the device built the batch the cloud last received and when the cloud had stored it (both relative to the window end; the cloud's timestamp is taken after the batch is written to the database), and whether the window was left out of the figures. It also copies the device log into the results as `soak-device.log`.
 
-Run 3 repeats **only the 1-hour soak** (Run workflow on `main` with `minutes` 60, `scenarios` off, `wake_after_idle_minutes` 0), on commit 3f2a988 or a later commit that changes only documentation. Its failure-scenario evidence remains that of runs 1 and 2. `scripts/fetch-ci-evidence.sh` adds it as `evidence/arm64-ci-history/run3-<id>/` (labelled "soak only") beside runs 1 and 2.
+What run 3 shows (`evidence/arm64-ci-history/run3-38788955634/`; times IST, device and cloud clocks both NTP-synchronised):
+
+- No window exceeded 5 s. 6 of the 3,570 measured windows exceeded 2 s, and 3 of the 41 measured windows of the short second session after the mock's restart (max 3,031 ms).
+- Six live uploads were acknowledged after more than 2 s (2,007 to 4,267 ms). Each took one attempt, none failed or timed out (the timeout is 20 s), the device stayed online, and in each the whole wait came before the first response byte. The connection was ready within 1 ms in five; the first upload of the run (00:23:51, 3,156 ms) took 19 ms to connect and falls in the start-up windows left out of the figures.
+- Every window over 2 s except one (2,102 ms) traces to one of them: either the slow upload carried that window's last samples, or the window's samples waited for the next upload, which starts only after the previous one is acknowledged.
+- Slowest window: 2761, ending 01:09:49.812 (4,074 ms). Its upload left the device 0.25 s after the window ended; the cloud finished storing it 3.82 s later (normally 0.14 s), and the reply arrived 0.18 s after that. Window 168 (00:26:36.812, 2,587 ms) shows the same pattern with 2.16 s.
+- The three slow uploads between 01:23:45 and 01:24:09, around the mock's end-of-session restart, show the opposite: the cloud stored the batch within 0.18 s and the reply took 1.8 to 4.1 s more to arrive.
+- Not shown by the data: where inside each leg the time went. The inbound figure covers the network, Render's proxy, the cloud process and the Neon write together, and nothing records why replies were slow. One run without a window over 5 s does not show that the run 2 near-miss cannot recur.

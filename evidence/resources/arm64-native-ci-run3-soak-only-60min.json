@@ -1,0 +1,20 @@
+{
+  "environment": {"machine": "aarch64", "model": "aarch64", "kernel": "6.17.0-1022-azure", "cpus": 4, "container": true},
+  "pid": 53,
+  "measured_seconds": 3602.2,
+  "daemon_restarted_during_window": false,
+  "pipeline_avg_cpu_percent_of_one_core": 0.95,
+  "pipeline_avg_cpu_percent_of_all_cores": 0.238,
+  "pipeline_peak_rss_mb_sampled": 124.8,
+  "pipeline_vm_hwm_mb_since_start": 124.4,
+  "pipeline_avg_rss_mb": 111.7,
+  "pipeline_mb_written_to_storage": 183.41,
+  "pipeline_mb_written_per_hour": 183.30,
+  "iface": "eth0",
+  "iface_mb_sent": 16.05,
+  "iface_mb_received": 4.42,
+  "pipeline_http_mb_sent_app_counter": 15.28,
+  "mock_avg_cpu_percent_of_one_core": 0.00,
+  "mock_mb_written": 0.00,
+  "notes": "write_bytes counts bytes this process caused to be sent to the block layer (SQLite database and WAL; the status file is on tmpfs). Interface bytes include all traffic on the interface. The app counter is request bodies plus an estimated 350 bytes of headers per request, before TLS."
+}

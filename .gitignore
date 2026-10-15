@@ -18,3 +18,4 @@ evidence/resources/out-*/
 .mvn/wrapper/maven-wrapper.jar
 dependency-reduced-pom.xml
 CLAUDE.md
+!evidence/arm64-ci-history/*/soak-device.log
