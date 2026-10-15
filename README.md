@@ -157,3 +157,14 @@ scripts/fetch-ci-evidence.sh            # latest completed run, or pass a run id
 ```
 
 It copies the results into `evidence/arm64-ci/` and `evidence/resources/`, regenerates `evidence/SUMMARY.md` and prints the row for the design note's resource table. Without a `CLOUD_URL` the script starts a local cloud container instead, which is how it was tested on an amd64 machine.
+
+**Results of run 38730796747** (commit 4a3b665, Neoverse-N2 runner, live Render + Neon cloud; every scenario PASS, 13 of 13 test sessions deleted afterwards; details in [evidence/SUMMARY.md](evidence/SUMMARY.md)):
+
+- Resource run, 1 hour online: 1.07 % of one core, 120.5 MB peak RSS, 264.55 MB/h written, 16.05 MB sent over the hour.
+- Online latency: p50 772 ms, p95 1490 ms, max 2116 ms (none over 5 s).
+- Network cut: offline after 3.5 s; online 3.9 s after the network returns.
+- 2-hour backlog: 5.76 M samples caught up 84 s after restore. The test is accelerated: data is generated at about 20x speed and the stand-in's buffer is raised to 200 s.
+- Render wake-up: 22.9 s and 24.1 s. After an outage over 15 minutes, the switch back to online can take about 25 s unless an uptime pinger keeps the service awake.
+- Power cuts are simulated by SIGKILL.
+
+The disk-write figure includes a polling inefficiency that was fixed after the run (design note, "Why 265 vs 176 MB/h"). A local run of the same setup with the fix wrote 186 MB/h, against 286 MB/h before it.
