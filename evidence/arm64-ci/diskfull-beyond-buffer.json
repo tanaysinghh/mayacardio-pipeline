@@ -1,0 +1,209 @@
+{
+  "scenario" : "diskfull-beyond-buffer",
+  "started_at" : "2026-10-15T13:18:05.921712793Z",
+  "environment" : {
+    "label" : "GitHub Actions ubuntu-24.04-arm native ARM64 runner, limited to 4 CPUs / 2 GB; not a Raspberry Pi 4; power cuts simulated by SIGKILL",
+    "os" : "Linux 6.17.0-1022-azure",
+    "arch" : "aarch64",
+    "cpus_visible" : 4,
+    "java" : "Eclipse Adoptium 17.0.20.1",
+    "container_hint" : "docker",
+    "mock" : "mock-standin (NOT the official biosignal-mock)",
+    "cloud" : "external cloud https://mayacardio-pipeline-cloud.onrender.com, reached directly; network cut and restored by: sh /ctl/net {action}"
+  },
+  "external_cloud" : "https://mayacardio-pipeline-cloud.onrender.com",
+  "external_cloud_note" : "",
+  "mock_buffer_seconds_of_data" : 10,
+  "hold_seconds" : 45,
+  "memory_buffer_samples_per_sensor" : "8000",
+  "ms_to_detect_disk_full" : 1024,
+  "pending_in_memory_while_full" : 15715,
+  "ms_to_recover_after_space_freed" : 1105,
+  "daemon_survived" : true,
+  "checks" : {
+    "d44b9f01" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "d44b9f01",
+        "generated_per_sensor" : 31402,
+        "ground_truth_note" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator",
+        "checked_up_to_index" : 30002,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 19344,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 10659,
+          "declared_lost_by_reason" : {
+            "disk_full" : 10659
+          },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 19343,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 10660,
+          "declared_lost_by_reason" : {
+            "disk_full" : 10660
+          },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "compared_up_to_index" : 28402,
+        "sensor_1" : {
+          "device_samples" : 19344,
+          "cloud_samples" : 19545,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 19343,
+          "cloud_samples" : 19544,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 106,
+        "cloud_losses" : 106,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "offline" : {
+          "results" : 2,
+          "matched" : 2,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "online" : {
+          "results" : 77,
+          "matched" : 75,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 2
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 79,
+      "device_session_summary" : {
+        "session" : "d44b9f01",
+        "first_seen" : "2026-10-15T13:18:07.130716872Z",
+        "closed" : false,
+        "close_reason" : null,
+        "saved_1" : 19344,
+        "next_index_1" : 30003,
+        "saved_2" : 19343,
+        "next_index_2" : 30003,
+        "loss_ranges" : 106,
+        "cloud_complete" : false
+      }
+    },
+    "final_status" : {
+      "mode" : "online",
+      "daemon" : "running",
+      "pid" : 56,
+      "session" : "d44b9f01",
+      "samples_saved" : 38285,
+      "samples_in_cloud" : 37478,
+      "backlog" : 807,
+      "current_session" : {
+        "saved_1" : 19143,
+        "saved_2" : 19142,
+        "cloud_1" : 18739,
+        "cloud_2" : 18739,
+        "next_index_1" : 29802,
+        "next_index_2" : 29802,
+        "closed" : false
+      },
+      "catchup_backlog_samples" : 0,
+      "loss_ranges" : 106,
+      "mode_since" : "2026-10-15T13:18:09.370050700Z",
+      "mock_connected" : true,
+      "disk_full" : false,
+      "pending_in_memory" : 0,
+      "max_commit_gap_ms" : [ 20103, 20102 ],
+      "replies_ok" : 592,
+      "corrupt_replies" : 0,
+      "timeouts" : 0,
+      "reconnects" : 1,
+      "stale_replies" : 0,
+      "storage_errors" : 0,
+      "offline_windows" : 2,
+      "uploaded_samples" : 37478,
+      "http_bytes_sent" : 220987,
+      "last_error" : null,
+      "updated_at" : "2026-10-15T13:19:21.460674366Z"
+    },
+    "pass" : true
+  },
+  "pass" : true,
+  "ms_until_external_cloud_healthy" : 544,
+  "timeline" : [ {
+    "t_ms" : 563,
+    "wall" : "2026-10-15T13:18:06.487238158Z",
+    "event" : "external_cloud",
+    "detail" : "https://mayacardio-pipeline-cloud.onrender.com direct, healthy after 544 ms; network cut by command"
+  }, {
+    "t_ms" : 781,
+    "wall" : "2026-10-15T13:18:06.705412797Z",
+    "event" : "mock_started",
+    "detail" : "pid 31"
+  }, {
+    "t_ms" : 788,
+    "wall" : "2026-10-15T13:18:06.712334503Z",
+    "event" : "device_started",
+    "detail" : "pid 56"
+  }, {
+    "t_ms" : 3449,
+    "wall" : "2026-10-15T13:18:09.373328888Z",
+    "event" : "device_online",
+    "detail" : "after 2658 ms"
+  }, {
+    "t_ms" : 18470,
+    "wall" : "2026-10-15T13:18:24.394215537Z",
+    "event" : "disk_filled",
+    "detail" : "filler 55 MB: No space left on device"
+  }, {
+    "t_ms" : 19495,
+    "wall" : "2026-10-15T13:18:25.419330137Z",
+    "event" : "device_reports_disk_full",
+    "detail" : "1024 ms"
+  }, {
+    "t_ms" : 64500,
+    "wall" : "2026-10-15T13:19:10.424833718Z",
+    "event" : "disk_space_freed"
+  }, {
+    "t_ms" : 65606,
+    "wall" : "2026-10-15T13:19:11.531145067Z",
+    "event" : "device_recovered",
+    "detail" : "1105 ms"
+  } ],
+  "finished_at" : "2026-10-15T13:19:26.911526741Z",
+  "raw_dir" : "/work/diskfull-beyond-buffer-2026-10-15T13-18-05"
+}

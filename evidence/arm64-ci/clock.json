@@ -1,0 +1,223 @@
+{
+  "scenario" : "clock",
+  "started_at" : "2026-10-15T13:19:27.223711821Z",
+  "environment" : {
+    "label" : "GitHub Actions ubuntu-24.04-arm native ARM64 runner, limited to 4 CPUs / 2 GB; not a Raspberry Pi 4; power cuts simulated by SIGKILL",
+    "os" : "Linux 6.17.0-1022-azure",
+    "arch" : "aarch64",
+    "cpus_visible" : 4,
+    "java" : "Eclipse Adoptium 17.0.20.1",
+    "container_hint" : "docker",
+    "mock" : "mock-standin (NOT the official biosignal-mock)",
+    "cloud" : "external cloud https://mayacardio-pipeline-cloud.onrender.com, reached directly; network cut and restored by: sh /ctl/net {action}"
+  },
+  "external_cloud" : "https://mayacardio-pipeline-cloud.onrender.com",
+  "external_cloud_note" : "",
+  "mock_buffer_seconds_of_data" : 10,
+  "next_index_at_first_jump" : [ 11341, 11356 ],
+  "losses_at_or_after_first_jump" : 0,
+  "losses_before_first_jump" : [ ],
+  "note" : "libfaketime slows every JVM it is loaded into (about 2x here: slower start, ~1.2 s commit gaps); losses before the first jump come from that slow start, not from the clock change",
+  "method" : "libfaketime on the mock, cloud and device processes (wall clock only; monotonic clock untouched; kernel clock untouched)",
+  "jumps" : [ {
+    "delta_seconds" : 3600,
+    "exit" : 0,
+    "device_wall_clock_offset_seen_s" : 3600,
+    "spurious_offline_switch_ms" : -1
+  }, {
+    "delta_seconds" : -7200,
+    "exit" : 0,
+    "device_wall_clock_offset_seen_s" : -3600,
+    "spurious_offline_switch_ms" : -1
+  }, {
+    "delta_seconds" : 3600,
+    "exit" : 0,
+    "device_wall_clock_offset_seen_s" : 0,
+    "spurious_offline_switch_ms" : -1
+  } ],
+  "clock_change_took_effect" : true,
+  "no_spurious_mode_switch" : true,
+  "checks" : {
+    "e2876f11" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "e2876f11",
+        "generated_per_sensor" : 44429,
+        "ground_truth_note" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator",
+        "checked_up_to_index" : 42544,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 42783,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 42883,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "compared_up_to_index" : 40944,
+        "sensor_1" : {
+          "device_samples" : 42783,
+          "cloud_samples" : 42783,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 42883,
+          "cloud_samples" : 42883,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 0,
+        "cloud_losses" : 0,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "offline" : {
+          "results" : 5,
+          "matched" : 5,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "online" : {
+          "results" : 109,
+          "matched" : 106,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 3
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 114,
+      "device_session_summary" : {
+        "session" : "e2876f11",
+        "first_seen" : "2026-10-15T13:19:34.475467988Z",
+        "closed" : false,
+        "close_reason" : null,
+        "saved_1" : 42545,
+        "next_index_1" : 42545,
+        "saved_2" : 42546,
+        "next_index_2" : 42546,
+        "loss_ranges" : 0,
+        "cloud_complete" : false
+      }
+    },
+    "final_status" : {
+      "mode" : "online",
+      "daemon" : "running",
+      "pid" : 51,
+      "session" : "e2876f11",
+      "samples_saved" : 85091,
+      "samples_in_cloud" : 83749,
+      "backlog" : 1342,
+      "current_session" : {
+        "saved_1" : 42545,
+        "saved_2" : 42546,
+        "cloud_1" : 41874,
+        "cloud_2" : 41875,
+        "next_index_1" : 42545,
+        "next_index_2" : 42546,
+        "closed" : false
+      },
+      "catchup_backlog_samples" : 0,
+      "loss_ranges" : 0,
+      "mode_since" : "2026-10-15T13:19:39.388895664Z",
+      "mock_connected" : true,
+      "disk_full" : false,
+      "pending_in_memory" : 0,
+      "max_commit_gap_ms" : [ 768, 925 ],
+      "replies_ok" : 366,
+      "corrupt_replies" : 0,
+      "timeouts" : 0,
+      "reconnects" : 1,
+      "stale_replies" : 0,
+      "storage_errors" : 0,
+      "offline_windows" : 5,
+      "uploaded_samples" : 83749,
+      "http_bytes_sent" : 522450,
+      "last_error" : "live upload: request timed out",
+      "updated_at" : "2026-10-15T13:21:17.030883195Z"
+    },
+    "pass" : true
+  },
+  "pass" : true,
+  "ms_until_external_cloud_healthy" : 489,
+  "timeline" : [ {
+    "t_ms" : 511,
+    "wall" : "2026-10-15T13:19:27.737382819Z",
+    "event" : "external_cloud",
+    "detail" : "https://mayacardio-pipeline-cloud.onrender.com direct, healthy after 489 ms; network cut by command"
+  }, {
+    "t_ms" : 3241,
+    "wall" : "2026-10-15T13:19:30.467102098Z",
+    "event" : "mock_started",
+    "detail" : "pid 31"
+  }, {
+    "t_ms" : 3246,
+    "wall" : "2026-10-15T13:19:30.472269473Z",
+    "event" : "device_started",
+    "detail" : "pid 51"
+  }, {
+    "t_ms" : 12257,
+    "wall" : "2026-10-15T13:19:39.483291810Z",
+    "event" : "device_online",
+    "detail" : "after 9009 ms"
+  }, {
+    "t_ms" : 32265,
+    "wall" : "2026-10-15T13:19:59.491588423Z",
+    "event" : "clock_jump",
+    "detail" : "3600 s (libfaketime offset now 3600 s)"
+  }, {
+    "t_ms" : 54790,
+    "wall" : "2026-10-15T13:20:22.016424394Z",
+    "event" : "clock_jump",
+    "detail" : "-7200 s (libfaketime offset now -3600 s)"
+  }, {
+    "t_ms" : 77294,
+    "wall" : "2026-10-15T13:20:44.520137157Z",
+    "event" : "clock_jump",
+    "detail" : "3600 s (libfaketime offset now 0 s)"
+  }, {
+    "t_ms" : 109868,
+    "wall" : "2026-10-15T13:21:17.095051426Z",
+    "event" : "synced",
+    "detail" : "0 ms"
+  } ],
+  "finished_at" : "2026-10-15T13:21:23.568435065Z",
+  "raw_dir" : "/work/clock-2026-10-15T13-19-27"
+}

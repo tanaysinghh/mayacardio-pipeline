@@ -1,0 +1,329 @@
+{
+  "scenario" : "mockfaults",
+  "started_at" : "2026-10-15T13:05:15.756376895Z",
+  "environment" : {
+    "label" : "GitHub Actions ubuntu-24.04-arm native ARM64 runner, limited to 4 CPUs / 2 GB; not a Raspberry Pi 4; power cuts simulated by SIGKILL",
+    "os" : "Linux 6.17.0-1022-azure",
+    "arch" : "aarch64",
+    "cpus_visible" : 4,
+    "java" : "Eclipse Adoptium 17.0.20.1",
+    "container_hint" : "docker",
+    "mock" : "mock-standin (NOT the official biosignal-mock)",
+    "cloud" : "external cloud https://mayacardio-pipeline-cloud.onrender.com, reached directly; network cut and restored by: sh /ctl/net {action}"
+  },
+  "external_cloud" : "https://mayacardio-pipeline-cloud.onrender.com",
+  "external_cloud_note" : "",
+  "mock_buffer_seconds_of_data" : 10,
+  "injected" : "corrupt x10, duplicate x10, stall 3 s, sensor 2 outage 8 s, sensor 1 outage 5 s, stall 15 s (> 10 s buffer), session restart",
+  "device_counters" : {
+    "corrupt_replies" : 10,
+    "timeouts" : 10,
+    "reconnects" : 4,
+    "stale_replies" : 10,
+    "replies_ok" : 524
+  },
+  "checks" : {
+    "5d9152c3" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "5d9152c3",
+        "generated_per_sensor" : 37074,
+        "ground_truth_note" : "session ended in ground truth",
+        "checked_up_to_index" : 37073,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 32296,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 4778,
+          "declared_lost_by_reason" : {
+            "buffer_overflow" : 2608,
+            "mock_session_restarted_unread_tail" : 170,
+            "sensor_outage" : 2000
+          },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 2000,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 31098,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 5976,
+          "declared_lost_by_reason" : {
+            "buffer_overflow" : 2607,
+            "mock_session_restarted_unread_tail" : 169,
+            "sensor_outage" : 3200
+          },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 3200,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "sensor_1" : {
+          "device_samples" : 32296,
+          "cloud_samples" : 32296,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 31098,
+          "cloud_samples" : 31098,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 30,
+        "cloud_losses" : 30,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "offline" : {
+          "results" : 2,
+          "matched" : 2,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "online" : {
+          "results" : 93,
+          "matched" : 93,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 0
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 95,
+      "device_session_summary" : {
+        "session" : "5d9152c3",
+        "first_seen" : "2026-10-15T13:05:16.641804791Z",
+        "closed" : true,
+        "close_reason" : "mock restarted with new session ac72b86e",
+        "saved_1" : 32296,
+        "next_index_1" : 36904,
+        "saved_2" : 31098,
+        "next_index_2" : 36905,
+        "loss_ranges" : 30,
+        "cloud_complete" : true
+      }
+    },
+    "ac72b86e" : {
+      "ground_truth_check" : {
+        "tool" : "check-standin (stand-in for check_ground_truth)",
+        "session_id" : "ac72b86e",
+        "generated_per_sensor" : 10888,
+        "ground_truth_note" : "ground truth snapshot may lag the mock by up to 200 ms; samples saved after it are still value-checked against the deterministic generator",
+        "checked_up_to_index" : 8033,
+        "malformed_lines" : 0,
+        "sensor_1" : {
+          "samples_exported" : 9835,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "sensor_2" : {
+          "samples_exported" : 9835,
+          "duplicates" : 0,
+          "wrong_values" : 0,
+          "beyond_generated" : 0,
+          "silent_loss_samples" : 0,
+          "silent_loss_ranges" : [ ],
+          "declared_lost_samples" : 0,
+          "declared_lost_by_reason" : { },
+          "overlapping_loss_samples" : 0,
+          "exported_inside_declared_loss" : 0,
+          "exported_during_mock_outage" : 0,
+          "outage_samples_in_ground_truth" : 0,
+          "wrong_value_examples" : [ ],
+          "pass" : true
+        },
+        "pass" : true
+      },
+      "device_vs_cloud" : {
+        "compared_up_to_index" : 6433,
+        "sensor_1" : {
+          "device_samples" : 9835,
+          "cloud_samples" : 9835,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "sensor_2" : {
+          "device_samples" : 9835,
+          "cloud_samples" : 9835,
+          "missing_in_cloud" : 0,
+          "extra_in_cloud" : 0,
+          "value_mismatches" : 0,
+          "device_duplicates" : 0,
+          "cloud_duplicates" : 0
+        },
+        "device_losses" : 0,
+        "cloud_losses" : 0,
+        "losses_equal" : true,
+        "identical" : true
+      },
+      "results_check" : {
+        "reference" : "naive independent implementation in tools (stand-in for the official reference)",
+        "online" : {
+          "results" : 25,
+          "matched" : 24,
+          "mismatched" : 0,
+          "not_verifiable_beyond_export" : 1
+        },
+        "duplicate_window_mode_lines" : 0,
+        "mismatch_examples" : [ ],
+        "pass" : true
+      },
+      "results_lines" : 25,
+      "device_session_summary" : {
+        "session" : "ac72b86e",
+        "first_seen" : "2026-10-15T13:06:48.977600586Z",
+        "closed" : false,
+        "close_reason" : null,
+        "saved_1" : 8034,
+        "next_index_1" : 8034,
+        "saved_2" : 8034,
+        "next_index_2" : 8034,
+        "loss_ranges" : 0,
+        "cloud_complete" : false
+      }
+    },
+    "final_status" : {
+      "mode" : "online",
+      "daemon" : "running",
+      "pid" : 800,
+      "session" : "ac72b86e",
+      "samples_saved" : 78262,
+      "samples_in_cloud" : 78262,
+      "backlog" : 0,
+      "current_session" : {
+        "saved_1" : 7434,
+        "saved_2" : 7434,
+        "cloud_1" : 7434,
+        "cloud_2" : 7434,
+        "next_index_1" : 7434,
+        "next_index_2" : 7434,
+        "closed" : false
+      },
+      "catchup_backlog_samples" : 0,
+      "loss_ranges" : 30,
+      "mode_since" : "2026-10-15T13:05:18.886014916Z",
+      "mock_connected" : true,
+      "disk_full" : false,
+      "pending_in_memory" : 0,
+      "max_commit_gap_ms" : [ 16519, 16518 ],
+      "replies_ok" : 491,
+      "corrupt_replies" : 10,
+      "timeouts" : 10,
+      "reconnects" : 4,
+      "stale_replies" : 10,
+      "storage_errors" : 0,
+      "offline_windows" : 2,
+      "uploaded_samples" : 78262,
+      "http_bytes_sent" : 427369,
+      "last_error" : null,
+      "updated_at" : "2026-10-15T13:07:07.985591048Z"
+    },
+    "pass" : true
+  },
+  "expectation" : "losses only where the mock could not deliver (outages, the >10 s stall, unread tail at restart), each declared with a reason; no silent loss, no duplicates",
+  "pass" : true,
+  "ms_until_external_cloud_healthy" : 266,
+  "timeline" : [ {
+    "t_ms" : 266,
+    "wall" : "2026-10-15T13:05:16.022618114Z",
+    "event" : "external_cloud",
+    "detail" : "https://mayacardio-pipeline-cloud.onrender.com direct, healthy after 266 ms; network cut by command"
+  }, {
+    "t_ms" : 469,
+    "wall" : "2026-10-15T13:05:16.225781613Z",
+    "event" : "mock_started",
+    "detail" : "pid 776"
+  }, {
+    "t_ms" : 473,
+    "wall" : "2026-10-15T13:05:16.230030939Z",
+    "event" : "device_started",
+    "detail" : "pid 800"
+  }, {
+    "t_ms" : 3140,
+    "wall" : "2026-10-15T13:05:18.896957143Z",
+    "event" : "device_online",
+    "detail" : "after 2667 ms"
+  }, {
+    "t_ms" : 13142,
+    "wall" : "2026-10-15T13:05:28.898791375Z",
+    "event" : "mock_corrupt",
+    "detail" : "corrupt 10 -> {\"ok\": true}"
+  }, {
+    "t_ms" : 19141,
+    "wall" : "2026-10-15T13:05:34.897752829Z",
+    "event" : "mock_duplicate",
+    "detail" : "duplicate 10 -> {\"ok\": true}"
+  }, {
+    "t_ms" : 25142,
+    "wall" : "2026-10-15T13:05:40.899196967Z",
+    "event" : "mock_stall",
+    "detail" : "stall 3 -> {\"ok\": true, \"stall_seconds\": 3.0}"
+  }, {
+    "t_ms" : 35141,
+    "wall" : "2026-10-15T13:05:50.898302986Z",
+    "event" : "mock_outage",
+    "detail" : "outage 2 8 -> {\"ok\": true}"
+  }, {
+    "t_ms" : 51141,
+    "wall" : "2026-10-15T13:06:06.898259351Z",
+    "event" : "mock_outage",
+    "detail" : "outage 1 5 -> {\"ok\": true}"
+  }, {
+    "t_ms" : 63141,
+    "wall" : "2026-10-15T13:06:18.898277884Z",
+    "event" : "mock_stall",
+    "detail" : "stall 15 -> {\"ok\": true, \"stall_seconds\": 15.0}"
+  }, {
+    "t_ms" : 93143,
+    "wall" : "2026-10-15T13:06:48.899915602Z",
+    "event" : "mock_restart",
+    "detail" : "restart -> {\"ok\": true, \"session_id\": \"ac72b86e\"}"
+  }, {
+    "t_ms" : 113141,
+    "wall" : "2026-10-15T13:07:08.897540006Z",
+    "event" : "synced",
+    "detail" : "0 ms"
+  } ],
+  "finished_at" : "2026-10-15T13:07:17.363740393Z",
+  "raw_dir" : "/work/mockfaults-2026-10-15T13-05-15"
+}

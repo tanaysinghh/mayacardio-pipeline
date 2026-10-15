@@ -1,0 +1,1 @@
+{"sessions_created_by_this_run": 13, "deleted": 13, "failed": 0, "method": "DELETE /api/v1/sessions/{id} with the bearer token, one call per session id recorded by the harness", "at": "2026-10-15T13:21:28Z"}
