@@ -37,7 +37,7 @@ public final class Rig implements AutoCloseable {
     final long startMono = System.nanoTime();
     final List<Map<String, Object>> timeline = new ArrayList<>();
     final Map<String, String> deviceExtra = new LinkedHashMap<>();
-    final int mockPort;
+    int mockPort;
     final int mockCtl;
     final int cloudPort;
     Path dataDir;
@@ -55,6 +55,9 @@ public final class Rig implements AutoCloseable {
     final Map<String, String> processEnv = new LinkedHashMap<>();
     String checkerCmdTemplate;
     String externalCloudToken;
+    String netCmdTemplate;
+    String deviceLauncher;
+    long msUntilCloudHealthy = -1;
     int deviceStarts;
 
     public Rig(Path work, Path jars, double speed, String mode) throws IOException {
@@ -98,11 +101,17 @@ public final class Rig implements AutoCloseable {
     public void startCloud() throws Exception {
         if (externalCloudUrl != null) {
             URI u = URI.create(externalCloudUrl);
-            int port = u.getPort() > 0 ? u.getPort() : 80;
+            long t0 = tMs();
             long deadline = System.nanoTime() + 300_000_000_000L;
             while (System.nanoTime() < deadline && !httpOk(externalCloudUrl + "/health")) {
                 Thread.sleep(500);
             }
+            msUntilCloudHealthy = tMs() - t0;
+            if (netCmdTemplate != null) {
+                event("external_cloud", externalCloudUrl + " direct, healthy after " + msUntilCloudHealthy + " ms; network cut by command");
+                return;
+            }
+            int port = u.getPort() > 0 ? u.getPort() : 80;
             proxy = new NetProxy(u.getHost(), port);
             event("external_cloud", externalCloudUrl + " via proxy " + proxy.port());
             return;
@@ -124,11 +133,11 @@ public final class Rig implements AutoCloseable {
 
     public JsonNode cloudStatus(String session) {
         try {
-            HttpURLConnection c = (HttpURLConnection) URI.create("http://127.0.0.1:" + proxy.port() + "/api/v1/sessions/" + session + "/status")
+            HttpURLConnection c = (HttpURLConnection) URI.create(cloudBase() + "/api/v1/sessions/" + session + "/status")
                     .toURL().openConnection();
-            c.setConnectTimeout(2000);
+            c.setConnectTimeout(5000);
             c.setReadTimeout(30_000);
-            c.setRequestProperty("Authorization", "Bearer " + (externalCloudToken != null ? externalCloudToken : TOKEN));
+            c.setRequestProperty("Authorization", "Bearer " + token());
             if (c.getResponseCode() != 200) {
                 return null;
             }
@@ -138,11 +147,19 @@ public final class Rig implements AutoCloseable {
         }
     }
 
+    String cloudBase() {
+        return proxy != null ? "http://127.0.0.1:" + proxy.port() : externalCloudUrl;
+    }
+
+    String token() {
+        return externalCloudToken != null ? externalCloudToken : TOKEN;
+    }
+
     static boolean httpOk(String url) {
         try {
             HttpURLConnection c = (HttpURLConnection) URI.create(url).toURL().openConnection();
-            c.setConnectTimeout(500);
-            c.setReadTimeout(1000);
+            c.setConnectTimeout(2000);
+            c.setReadTimeout(5000);
             return c.getResponseCode() == 200;
         } catch (IOException e) {
             return false;
@@ -169,8 +186,9 @@ public final class Rig implements AutoCloseable {
 
     public void startMock() throws Exception {
         if (externalMock()) {
+            Files.createDirectories(gtDir);
             mock = new Proc("mock", shell(mockCmdTemplate.replace("{port}", Integer.toString(mockPort))),
-                    work.resolve("mock.log"), withProcessEnv(null)).start();
+                    work.resolve("mock.log"), withProcessEnv(Map.of("BIOSIGNAL_MOCK_GT_DIR", gtDir.toString()))).start();
             mockStarts++;
             long deadline = System.nanoTime() + 60_000_000_000L;
             while (System.nanoTime() < deadline) {
@@ -206,9 +224,9 @@ public final class Rig implements AutoCloseable {
         sb.append("mock.port=").append(mockPort).append('\n');
         sb.append("data.dir=").append(dataDir.toString().replace('\\', '/')).append('\n');
         sb.append("run.dir=").append(runDir.toString().replace('\\', '/')).append('\n');
-        if (proxy != null) {
-            sb.append("cloud.url=http://127.0.0.1:").append(proxy.port()).append('\n');
-            sb.append("cloud.token=").append(externalCloudToken != null ? externalCloudToken : TOKEN).append('\n');
+        if (proxy != null || externalCloudUrl != null) {
+            sb.append("cloud.url=").append(cloudBase()).append('\n');
+            sb.append("cloud.token=").append(token()).append('\n');
         }
         for (Map.Entry<String, String> e : deviceExtra.entrySet()) {
             sb.append(e.getKey()).append('=').append(e.getValue()).append('\n');
@@ -218,8 +236,10 @@ public final class Rig implements AutoCloseable {
 
     public void startDevice() throws Exception {
         writeDeviceConf();
-        device = new Proc("device", List.of(java, "-Xmx256m", "-jar", jars.resolve("device-1.0.0-all.jar").toString(),
-                "run", "--config", conf.toString()), work.resolve("device.log"), withProcessEnv(null)).start();
+        List<String> cmd = deviceLauncher != null ? List.of(deviceLauncher, "run", "--config", conf.toString())
+                : List.of(java, "-Xmx256m", "-jar", jars.resolve("device-1.0.0-all.jar").toString(), "run", "--config", conf.toString());
+        device = new Proc("device", cmd, work.resolve("device.log"),
+                withProcessEnv(deviceLauncher != null ? Map.of("PIPELINE_ALLOW_ROOT", "1") : null)).start();
         deviceStarts++;
         event("device_started", "pid " + device.pid());
     }
@@ -250,14 +270,32 @@ public final class Rig implements AutoCloseable {
         }
     }
 
-    public void cutNetwork() {
+    public void cutNetwork() throws Exception {
+        if (netCmdTemplate != null) {
+            event("network_cut", netCmd("cut"));
+            return;
+        }
         proxy.cut();
         event("network_cut", null);
     }
 
-    public void restoreNetwork() {
+    public void restoreNetwork() throws Exception {
+        if (netCmdTemplate != null) {
+            event("network_restored", netCmd("restore"));
+            return;
+        }
         proxy.restore();
         event("network_restored", null);
+    }
+
+    String netCmd(String action) throws Exception {
+        long t0 = tMs();
+        Process p = new ProcessBuilder(shell(netCmdTemplate.replace("{action}", action))).redirectErrorStream(true).start();
+        String out = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+        if (!p.waitFor(60, TimeUnit.SECONDS) || p.exitValue() != 0) {
+            throw new IllegalStateException("network " + action + " command failed: " + out);
+        }
+        return "by command in " + (tMs() - t0) + " ms" + (out.isEmpty() ? "" : ": " + out);
     }
 
     public JsonNode status() {

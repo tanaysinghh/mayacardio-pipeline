@@ -92,7 +92,9 @@ fi
 RX1=$(dev_field 2); TX1=$(dev_field 10); A1=$(app_bytes)
 MC1=$MC0; MW1=$MW0
 if [ -n "$MOCK_PID" ] && [ -d "/proc/$MOCK_PID" ]; then MC1=$(cpu_ticks "$MOCK_PID"); MW1=$(wbytes "$MOCK_PID"); fi
-MODEL=$(tr -d '\000' < /proc/device-tree/model 2>/dev/null || uname -m)
+MODEL=$(tr -d '\000' < /proc/device-tree/model 2>/dev/null || true)
+[ -z "$MODEL" ] && MODEL=$(lscpu 2>/dev/null | awk -F: '/^Model name/ {gsub(/^ +/, "", $2); print $2; exit}' || true)
+[ -z "$MODEL" ] && MODEL=$(uname -m)
 CONTAINER=false
 [ -f /.dockerenv ] && CONTAINER=true
 

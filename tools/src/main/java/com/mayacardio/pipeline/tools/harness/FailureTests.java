@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -29,7 +30,7 @@ public final class FailureTests {
 
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
-            System.err.println("usage: failtest <baseline|kill9|netcut|backlog|mockfaults|powercut|diskfull|clock|all> [--jars DIR] [--work DIR] [--evidence DIR] [options]");
+            System.err.println("usage: failtest <baseline|kill9|netcut|backlog|mockfaults|powercut|diskfull|clock|soak|all> [--jars DIR] [--work DIR] [--evidence DIR] [options]");
             System.exit(2);
         }
         Map<String, String> opts = new LinkedHashMap<>();
@@ -63,13 +64,19 @@ public final class FailureTests {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("scenario", id);
         result.put("started_at", Instant.now().toString());
-        result.put("environment", environment());
+        result.put("environment", environment(opts));
         Rig rig = null;
         try {
             rig = new Rig(work, jars, Double.parseDouble(opts.getOrDefault("speed", "1")), opts.getOrDefault("mode", "signal"));
             rig.mockBufferSeconds = num("mock-buffer-seconds", 10);
             rig.externalCloudUrl = opts.get("cloud-url");
-            rig.externalCloudToken = opts.get("cloud-token");
+            rig.externalCloudToken = opts.containsKey("cloud-token") ? opts.get("cloud-token") : System.getenv("CLOUD_API_TOKEN");
+            rig.netCmdTemplate = opts.get("net-cmd");
+            rig.deviceLauncher = opts.get("device-launcher");
+            rig.mockPort = num("mock-port", rig.mockPort);
+            if (opts.containsKey("run-dir")) {
+                rig.runDir = Path.of(opts.get("run-dir"));
+            }
             rig.mockCmdTemplate = opts.get("mock-cmd");
             rig.checkerCmdTemplate = opts.get("checker-cmd");
             if (rig.mockCmdTemplate != null) {
@@ -92,9 +99,13 @@ public final class FailureTests {
                 case "powercut" -> powercut(rig);
                 case "diskfull" -> diskFull(rig);
                 case "clock" -> clock(rig);
+                case "soak" -> soak(rig);
                 default -> throw new IllegalArgumentException("unknown scenario " + name);
             };
             result.putAll(r);
+            if (rig.externalCloudUrl != null) {
+                result.put("ms_until_external_cloud_healthy", rig.msUntilCloudHealthy);
+            }
         } catch (Exception e) {
             result.put("pass", false);
             result.put("error", e.toString());
@@ -103,6 +114,7 @@ public final class FailureTests {
             if (rig != null) {
                 result.put("timeline", rig.timeline);
                 rig.close();
+                logSessions(rig);
             }
         }
         result.put("finished_at", Instant.now().toString());
@@ -114,15 +126,41 @@ public final class FailureTests {
         return Boolean.TRUE.equals(result.get("pass"));
     }
 
-    static Map<String, Object> environment() {
+    private void logSessions(Rig rig) {
+        String log = opts.get("session-log");
+        if (log == null) {
+            return;
+        }
+        try {
+            for (JsonNode s : rig.sessions()) {
+                Files.writeString(Path.of(log), s.get("session").asText() + "\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            }
+        } catch (Exception e) {
+            System.err.println("could not list sessions for " + log + ": " + e);
+        }
+    }
+
+    static Map<String, Object> environment(Map<String, String> opts) {
         Map<String, Object> m = new LinkedHashMap<>();
+        if (opts.containsKey("env-label")) {
+            m.put("label", opts.get("env-label"));
+        }
         m.put("os", System.getProperty("os.name") + " " + System.getProperty("os.version"));
         m.put("arch", System.getProperty("os.arch"));
         m.put("cpus_visible", Runtime.getRuntime().availableProcessors());
         m.put("java", System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
         m.put("container_hint", Files.exists(Path.of("/.dockerenv")) ? "docker" : "none");
-        m.put("mock", "mock-standin (NOT the official biosignal-mock)");
-        m.put("cloud", "local cloud jar (SQLite) behind an in-process TCP proxy used to cut the network");
+        m.put("mock", opts.containsKey("mock-cmd") ? "launched by command: " + opts.get("mock-cmd") : "mock-standin (NOT the official biosignal-mock)");
+        if (!opts.containsKey("cloud-url")) {
+            m.put("cloud", "local cloud jar (SQLite) behind an in-process TCP proxy used to cut the network");
+        } else if (opts.containsKey("net-cmd")) {
+            m.put("cloud", "external cloud " + opts.get("cloud-url") + ", reached directly; network cut and restored by: " + opts.get("net-cmd"));
+        } else {
+            m.put("cloud", "external cloud " + opts.get("cloud-url") + " behind an in-process TCP proxy used to cut the network");
+        }
+        if (opts.containsKey("device-launcher")) {
+            m.put("device_launcher", opts.get("device-launcher"));
+        }
         return m;
     }
 
@@ -445,6 +483,74 @@ public final class FailureTests {
         out.put("daemon_survived", alive);
         out.put("checks", verify);
         out.put("pass", alive && toDiskFull >= 0 && toRecover >= 0 && Boolean.TRUE.equals(verify.get("pass")));
+        return out;
+    }
+
+    private Map<String, Object> soak(Rig rig) throws Exception {
+        int minutes = num("minutes", 60);
+        int warmup = num("warmup-seconds", 20);
+        String meterScript = opts.getOrDefault("measure-script", "/opt/pipeline/bin/measure-resources.sh");
+        startAll(rig);
+        rig.sleepUntil(rig.tMs() + warmup * 1000L);
+        long from = rig.tMs();
+        Path resFile = rig.work.resolve("resources.json");
+        Proc meter = new Proc("measure", List.of(meterScript, "--duration", Integer.toString(minutes * 60), "--interval", "5",
+                "--out", resFile.toString(), "--pid", Long.toString(rig.device.pid()), "--mock-pid", Long.toString(rig.mock.pid()),
+                "--status-file", rig.runDir.resolve("status.json").toString()), rig.work.resolve("measure.log"), null).start();
+        rig.event("measurement_started", minutes + " min, daemon pid " + rig.device.pid());
+        List<long[]> disrupted = new ArrayList<>();
+        int mockRestarts = 0;
+        long maxBacklog = 0;
+        while (meter.alive()) {
+            Thread.sleep(5000);
+            JsonNode st = rig.status();
+            if (st != null) {
+                maxBacklog = Math.max(maxBacklog, st.path("backlog").asLong());
+            }
+            boolean ended = st != null && st.path("current_session").path("closed").asBoolean();
+            if (ended || !rig.mock.alive()) {
+                long t = rig.tMs();
+                rig.event("mock_session_ended", "restarting the mock with the same command, as its systemd unit would");
+                rig.killMock();
+                rig.startMock();
+                rig.waitStatus(x -> !x.path("current_session").path("closed").asBoolean(), 60_000);
+                mockRestarts++;
+                disrupted.add(new long[]{t, rig.tMs()});
+            }
+        }
+        rig.event("measurement_finished", null);
+        boolean daemonAlive = rig.device.alive();
+        rig.event("synced", rig.waitSynced(300_000) + " ms");
+        Map<String, Object> verify = rig.verifyAll(true);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("minutes", minutes);
+        out.put("resources", Files.exists(resFile) ? Json.MAPPER.convertValue(Json.read(Files.readString(resFile)), Map.class) : "measurement file missing");
+        if (Files.exists(resFile) && opts.containsKey("resources-out")) {
+            Path copy = Path.of(opts.get("resources-out"));
+            Files.createDirectories(copy.toAbsolutePath().getParent());
+            Files.copy(resFile, copy, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
+        out.put("mock_restarts_after_session_end", mockRestarts);
+        out.put("max_backlog_samples_seen", maxBacklog);
+        Map<String, Object> lat = null;
+        for (JsonNode s : rig.sessions()) {
+            String sid = s.get("session").asText();
+            if (Files.exists(rig.gtDir.resolve(sid + ".json")) && Files.exists(rig.work.resolve("results-" + sid + ".jsonl"))) {
+                Map<String, Object> l = rig.latency(sid, disrupted, from + 5000);
+                if (lat == null) {
+                    lat = l;
+                    out.put("online_latency", l);
+                } else {
+                    out.put("online_latency_session_" + sid, l);
+                }
+            }
+        }
+        if (rig.externalCloudUrl != null) {
+            out.put("latency_clock_note", "computed_at is the cloud host's wall clock and the window end is this machine's wall clock; both NTP-synchronised, so the figures include their offset (normally a few ms)");
+        }
+        out.put("checks", verify);
+        out.put("pass", daemonAlive && Boolean.TRUE.equals(verify.get("pass")) && lat != null
+                && ((Number) lat.get("windows_over_5s")).longValue() == 0);
         return out;
     }
 

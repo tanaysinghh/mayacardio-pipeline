@@ -31,6 +31,17 @@ EOF
   failtest)
     exec java -Xmx512m -jar /opt/pipeline/lib/pipeline-tools.jar failtest "$@" --jars /opt/pipeline/lib
     ;;
+  failtest-logged)
+    set +e
+    java -Xmx512m -jar /opt/pipeline/lib/pipeline-tools.jar failtest "$@" --jars /opt/pipeline/lib
+    rc=$?
+    LOGS="${FAILTEST_LOG_DIR:-/out/logs}"
+    mkdir -p "$LOGS"
+    find "${FAILTEST_WORK:-/work}" -type f \( -name '*.log' -o -name 'checker-*.txt' \) | while read -r f; do
+      tail -c 200000 "$f" > "$LOGS/$(echo "${f#/}" | tr '/' '_')"
+    done
+    exit $rc
+    ;;
   *)
     exec "$MODE" "$@"
     ;;
