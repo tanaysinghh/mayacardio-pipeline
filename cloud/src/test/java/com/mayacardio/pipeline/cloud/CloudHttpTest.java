@@ -73,4 +73,29 @@ class CloudHttpTest {
             assertTrue(send(HttpRequest.newBuilder(URI.create(base + "/"))).body().contains("\"interpretation\""));
         }
     }
+
+    @Test
+    void deleteNeedsTheTokenAndRemovesOnlyThatSession(@TempDir Path dir) throws Exception {
+        try (CloudMain app = CloudMain.start(Map.of("PORT", "0", "CLOUD_SQLITE_PATH", dir.resolve("c.db").toString(), "CLOUD_API_TOKEN", "tok"))) {
+            String base = "http://127.0.0.1:" + app.port();
+            for (String id : new String[]{"keep", "drop"}) {
+                byte[] body = BatchCodec.encode(new BatchCodec.Batch(id, 1, List.of(new SampleRun(1, 0, new int[][]{{1, 2, 3}, {4, 5, 6}}))));
+                assertEquals(200, send(HttpRequest.newBuilder(URI.create(base + "/api/v1/ingest"))
+                        .header("Authorization", "Bearer tok").POST(HttpRequest.BodyPublishers.ofByteArray(body))).statusCode());
+            }
+            assertEquals(401, send(HttpRequest.newBuilder(URI.create(base + "/api/v1/sessions/drop")).DELETE()).statusCode());
+            assertEquals(401, send(HttpRequest.newBuilder(URI.create(base + "/api/v1/sessions/drop"))
+                    .header("Authorization", "Bearer wrong").DELETE()).statusCode());
+            assertEquals(400, send(HttpRequest.newBuilder(URI.create(base + "/api/v1/sessions/a%20b"))
+                    .header("Authorization", "Bearer tok").DELETE()).statusCode());
+            HttpResponse<String> del = send(HttpRequest.newBuilder(URI.create(base + "/api/v1/sessions/drop"))
+                    .header("Authorization", "Bearer tok").DELETE());
+            assertEquals(200, del.statusCode(), del.body());
+            assertEquals(404, send(HttpRequest.newBuilder(URI.create(base + "/api/v1/sessions/drop/export")).header("Authorization", "Bearer tok")).statusCode());
+            String sessions = send(HttpRequest.newBuilder(URI.create(base + "/api/v1/sessions")).header("Authorization", "Bearer tok")).body();
+            assertTrue(sessions.contains("\"keep\"") && !sessions.contains("\"drop\""), sessions);
+            String kept = send(HttpRequest.newBuilder(URI.create(base + "/api/v1/sessions/keep/export")).header("Authorization", "Bearer tok")).body();
+            assertEquals(2, kept.strip().split("\n").length, kept);
+        }
+    }
 }

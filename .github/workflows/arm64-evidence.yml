@@ -1,0 +1,138 @@
+name: arm64-evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Length of the online resource run in minutes
+        type: number
+        default: 60
+      scenarios:
+        description: Run the failure scenarios (kill -9, network cut, mock faults, simulated power cut, 2-hour backlog, disk full, clock jumps)
+        type: boolean
+        default: true
+      wake_after_idle_minutes:
+        description: At the end, leave the cloud idle this many minutes and time its wake-up (0 skips; Render sleeps after 15 idle minutes)
+        type: number
+        default: 16
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arm64-evidence
+  cancel-in-progress: false
+
+jobs:
+  evidence:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 330
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Check repository secrets
+        env:
+          CLOUD_URL: ${{ secrets.CLOUD_URL }}
+          CLOUD_API_TOKEN: ${{ secrets.CLOUD_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUD_URL" ] || [ -z "$CLOUD_API_TOKEN" ]; then
+            echo "::error::Add the repository secrets CLOUD_URL and CLOUD_API_TOKEN (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          echo "::add-mask::$CLOUD_API_TOKEN"
+
+      - name: Runner
+        run: |
+          uname -a
+          lscpu
+          nproc
+          free -m
+          docker version --format 'docker {{.Server.Version}} {{.Server.Os}}/{{.Server.Arch}}'
+
+      - name: Build and test natively on ARM64
+        env:
+          PG_TEST_URL: postgresql://postgres:ci@localhost:5432/ci?sslmode=disable
+        run: |
+          set -o pipefail
+          OUT="$RUNNER_TEMP/ci-evidence"
+          mkdir -p "$OUT/arm64-ci"
+          START=$(awk '{print $1}' /proc/uptime)
+          ./mvnw -B -ntp verify 2>&1 | tee "$RUNNER_TEMP/mvn.log"
+          END=$(awk '{print $1}' /proc/uptime)
+          cat */target/surefire-reports/TEST-*.xml | grep -o '<testsuite [^>]*>' | awk -v s="$START" -v e="$END" -v jv="$(java -version 2>&1 | head -1 | tr -d '"')" '
+            { for (i = 1; i <= NF; i++) { split($i, kv, "=\""); v = kv[2]; sub(/".*/, "", v)
+                if (kv[1] == "tests") t += v; if (kv[1] == "failures") f += v; if (kv[1] == "errors") er += v; if (kv[1] == "skipped") sk += v } }
+            END { printf "{\"command\": \"./mvnw -B -ntp verify\", \"java\": \"%s\", \"machine\": \"aarch64 (native)\", \"tests\": %d, \"failures\": %d, \"errors\": %d, \"skipped\": %d, \"postgres_tests\": \"against a postgres:16 service container\", \"seconds\": %.0f}\n", jv, t, f, er, sk, e - s }' \
+            | tee "$OUT/arm64-ci/build-and-test.json"
+
+      - name: Build the device image natively
+        run: |
+          mkdir -p dist
+          cp device/target/device-1.0.0-all.jar cloud/target/cloud-1.0.0-all.jar \
+             mock-standin/target/biosignal-mock-standin.jar tools/target/pipeline-tools.jar dist/
+          docker build -f docker/arm64/Dockerfile -t pipeline-device:ci .
+
+      - name: Resource run, failure scenarios and live-cloud measurements
+        env:
+          CLOUD_URL: ${{ secrets.CLOUD_URL }}
+          CLOUD_API_TOKEN: ${{ secrets.CLOUD_API_TOKEN }}
+          MINUTES: ${{ inputs.minutes }}
+          SCENARIOS: ${{ inputs.scenarios && 'all' || 'none' }}
+          IDLE: ${{ inputs.wake_after_idle_minutes }}
+        run: |
+          scripts/ci-arm64-evidence.sh --out "$RUNNER_TEMP/ci-evidence" --minutes "$MINUTES" \
+            --scenarios "$SCENARIOS" --wake-after-idle-minutes "$IDLE" --image pipeline-device:ci
+
+      - name: Delete test sessions from the cloud
+        if: always()
+        env:
+          CLOUD_URL: ${{ secrets.CLOUD_URL }}
+          CLOUD_API_TOKEN: ${{ secrets.CLOUD_API_TOKEN }}
+        run: scripts/ci-arm64-evidence.sh --out "$RUNNER_TEMP/ci-evidence" --cleanup-only
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/ci-evidence/SUMMARY.md" ]; then
+            sed -n '/^## GitHub Actions native ARM64/,$p' "$RUNNER_TEMP/ci-evidence/SUMMARY.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload compact results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm64-evidence
+          path: |
+            ${{ runner.temp }}/ci-evidence/arm64-ci
+            ${{ runner.temp }}/ci-evidence/resources
+            ${{ runner.temp }}/ci-evidence/SUMMARY.md
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Upload log tails (for debugging, not for the repo)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm64-evidence-logs
+          path: ${{ runner.temp }}/ci-evidence/logs
+          if-no-files-found: ignore
+          retention-days: 14
