@@ -50,7 +50,7 @@ Not measured: Render's real shared vCPU, Render's wake-up time, Neon's network l
 4. **Board:** `sudo ./scripts/install.sh --cloud-url https://<service>.onrender.com --token $TOKEN` (or edit `/etc/pipeline/pipeline.conf`, then `sudo systemctl restart pipeline`).
 5. **Uptime monitor** on `/health` every 5 minutes (see above).
 
-Neon limits to keep in mind: 1 GB holds roughly 80-90 hours of data; 100 CU-hours cover about 400 active hours a month; `DELETE /api/v1/sessions/{id}` frees space.
+Neon limits to keep in mind: 1 GB holds roughly 80-90 hours of data; 100 CU-hours cover about 400 active hours a month; `DELETE /api/v1/sessions/{id}` (bearer token, one session at a time) removes a session's samples, losses and results; PostgreSQL reuses the freed space after autovacuum, so Neon's storage figure may fall only later. The ARM64 workflow (`.github/workflows/arm64-evidence.yml`) deletes every session it created this way, reading `CLOUD_URL` and `CLOUD_API_TOKEN` from the repository's Actions secrets.
 
 ## Fallbacks
 

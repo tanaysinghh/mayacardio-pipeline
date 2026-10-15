@@ -4,6 +4,8 @@ A crash-safe pipeline for a Raspberry Pi 4 class board (ARM64, 4 cores, 2 GB). I
 
 > **Validated against stand-ins, not the official tools.** The official `biosignal-mock` and `check_ground_truth` were not available while this was built. `biosignal-mock` and `check_ground_truth` in `scripts/` are **stand-ins** written from the "Mock service" section of the assessment, and every result in `evidence/` was produced against them. The pipeline depends only on the wire protocol, so the official mock can be used with no code change; re-running the tests against the official tools is still to be done.
 
+> **No Raspberry Pi 4 run.** A real Pi 4 run was not possible (no board was available). ARM64 evidence comes from the **GitHub Actions ubuntu-24.04-arm native ARM64 runner, limited to 4 CPUs / 2 GB; not a Raspberry Pi 4; power cuts simulated by SIGKILL** (see [ARM64 evidence on GitHub Actions](#arm64-evidence-on-github-actions)). The Pi steps below are written and checked in containers but have not been run on a board.
+
 - Design note (architecture, guarantees, power-cut loss): [docs/DESIGN_NOTE.md](docs/DESIGN_NOTE.md) ([PDF](docs/DESIGN_NOTE.pdf))
 - Failure-test and resource evidence: [evidence/SUMMARY.md](evidence/SUMMARY.md)
 - Cloud deployment (free tier, no card): [docs/CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md)
@@ -18,7 +20,8 @@ A crash-safe pipeline for a Raspberry Pi 4 class board (ARM64, 4 cores, 2 GB). I
 | `cloud` | Cloud service (Java 17, JDK HTTP server, PostgreSQL or SQLite): ingest, idempotent storage, window processing, results and export API. |
 | `mock-standin` | **Stand-in** for `biosignal-mock`: signal and ramp modes, 10 s buffer, `lost` reporting, fault injection. |
 | `tools` | `check-standin` (**stand-in** ground-truth checker), `compare`, `check-results` (independent naive reference), `failtest` (failure harness), `summarize`. |
-| `scripts/` | `install.sh`, `pipeline` wrapper, `biosignal-mock` and `check_ground_truth` launchers (+ `.cmd`), systemd units, `measure-resources.sh`, `arm64-verify.sh`, example config. |
+| `scripts/` | `install.sh`, `pipeline` wrapper, `biosignal-mock` and `check_ground_truth` launchers (+ `.cmd`), systemd units, `measure-resources.sh`, `arm64-verify.sh`, `ci-arm64-evidence.sh` and `fetch-ci-evidence.sh` (ARM64 evidence on GitHub Actions), example config. |
+| `.github/workflows/arm64-evidence.yml` | Manually triggered workflow that builds, tests and measures on a native ARM64 runner against the deployed cloud. |
 | `docker/` | `cloud/Dockerfile` (the deployed service), `arm64/Dockerfile` (device test image; also builds for amd64). |
 | `render.yaml` | Render blueprint for the cloud service. |
 | `evidence/` | Compact results of every failure scenario and the resource runs. |
@@ -92,7 +95,7 @@ CLOUD_STORAGE=postgres CLOUD_JDBC_URL='postgresql://user:pass@host/db?sslmode=re
 docker build -f docker/cloud/Dockerfile -t pipeline-cloud .                                 # the image Render builds
 ```
 
-API: `GET /health`, `GET /` (info), and with `Authorization: Bearer <token>`: `POST /api/v1/ingest` (gzip binary batches), `GET /api/v1/sessions`, `GET /api/v1/sessions/{id}/ranges|results|export|status`, `POST /api/v1/sessions/{id}/losses|meta|results`, `DELETE /api/v1/sessions/{id}`.
+API: `GET /health`, `GET /` (info), and with `Authorization: Bearer <token>`: `POST /api/v1/ingest` (gzip binary batches), `GET /api/v1/sessions`, `GET /api/v1/sessions/{id}/ranges|results|export|status`, `POST /api/v1/sessions/{id}/losses|meta|results`, `DELETE /api/v1/sessions/{id}` (removes one session's samples, losses and results; the ARM64 workflow uses it to delete its test sessions).
 
 ## Stand-in mock and checker
 
@@ -108,7 +111,8 @@ The launcher accepts only those four options. Stand-in-only settings come from t
 ## Reproducing the tests
 
 ```sh
-./mvnw test        # unit and integration tests (the PostgreSQL variants also run when PG_TEST_URL is set)
+./mvnw test        # unit and integration tests; the PostgreSQL variants also run when PG_TEST_URL is set
+                   # (a local server without TLS needs ...?sslmode=disable)
 ```
 
 The failure scenarios start the mock, the cloud and the device as separate processes, inject faults and check the outcome against ground truth, the cloud copy and the reference. They kill processes and fill a disk, so run them **inside a disposable Linux container**; the device test image contains Java, the jars, the harness and libfaketime:
@@ -123,7 +127,7 @@ docker run --rm -v "$PWD/evidence:/out" pipeline-device:amd64 failtest clock --c
 java -jar dist/pipeline-tools.jar summarize evidence
 ```
 
-The clock scenario shifts the wall clock of the test's processes with libfaketime, never the kernel clock. `failtest` also accepts `--mock-cmd "<command with {port}>"` and `--checker-cmd "<command with {export}>"` to use the official mock and checker, and `--cloud-url URL --cloud-token T` for an external cloud.
+The clock scenario shifts the wall clock of the test's processes with libfaketime, never the kernel clock. `failtest` also accepts `--mock-cmd "<command with {port}>"` and `--checker-cmd "<command with {export}>"` to use the official mock and checker, and `--cloud-url URL` (token from `--cloud-token` or `CLOUD_API_TOKEN`) for an external cloud. With `--net-cmd "<command with {action}>"` the network is cut and restored by that command (`cut`/`restore`) instead of the in-process proxy, and the device talks to the external cloud directly. `soak --minutes N` is the online resource run (`--mock-cmd`, `--mock-port`, `--device-launcher` select the exact mock command and the production launcher).
 
 ## Resource measurement
 
@@ -133,3 +137,23 @@ scripts/arm64-verify.sh --seconds 3600 --cloud-url http://host.docker.internal:1
 ```
 
 Reports average CPU, peak RSS, MB written to storage (`/proc/PID/io`) and MB sent on the network interface; elapsed time comes from `/proc/uptime`, so clock changes cannot distort it.
+
+## ARM64 evidence on GitHub Actions
+
+`.github/workflows/arm64-evidence.yml` runs on the free native ARM64 runner (`runs-on: ubuntu-24.04-arm`, public repository) when started by hand (Actions > arm64-evidence > Run workflow, or `gh workflow run arm64-evidence.yml -f minutes=60 -f scenarios=true`). It needs two repository secrets: `CLOUD_URL` (the deployed cloud) and `CLOUD_API_TOKEN`; the token is only read from secrets, passed to containers through the environment and masked in logs.
+
+1. `./mvnw -B verify` natively on ARM64, with a PostgreSQL 16 service container for the PostgreSQL tests.
+2. Builds the device image natively and runs `scripts/ci-arm64-evidence.sh`: each run is one container limited to `--cpus 4 --memory 2g --memory-swap 2g` holding the stand-in mock, the device daemon and the harness, talking to the live cloud over the internet.
+   - **Resource run** (`soak`, default 60 minutes): mock started with exactly `biosignal-mock --mode signal --seed 7 --duration 3600 --port 7100`, daemon started by the production launcher; average CPU, peak RSS, MB written, MB sent, plus result latency over the whole run against the live cloud.
+   - **Failure scenarios** (optional): kill -9, network cut and restore (`docker network disconnect` / `connect` of the container), every mock fault, power cut **simulated** by SIGKILL, the 2-hour backlog, disk full in a 64 MB tmpfs, clock jumps with libfaketime. Nothing needs privileges.
+   - **Live-cloud figures**: result latency, mode-switch times, catch-up time after a 60 s outage and after 2 hours, and the cloud's wake-up time at the start and (default) after 16 idle minutes.
+   - The runner's `uname -a`, `lscpu` and `/proc/cpuinfo` are recorded, and every test session is deleted from the cloud at the end (`DELETE /api/v1/sessions/{id}`), also when the run fails.
+3. Uploads the compact results as the artifact `arm64-evidence` (log tails separately as `arm64-evidence-logs`, not for the repository).
+
+Then, with the GitHub CLI logged in:
+
+```sh
+scripts/fetch-ci-evidence.sh            # latest completed run, or pass a run id
+```
+
+It copies the results into `evidence/arm64-ci/` and `evidence/resources/`, regenerates `evidence/SUMMARY.md` and prints the row for the design note's resource table. Without a `CLOUD_URL` the script starts a local cloud container instead, which is how it was tested on an amd64 machine.
