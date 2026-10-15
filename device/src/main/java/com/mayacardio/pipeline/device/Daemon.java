@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLongArray;
 
 public final class Daemon {
@@ -25,6 +26,7 @@ public final class Daemon {
     private final List<Runnable> stoppers = new ArrayList<>();
     private final List<Thread> threads = new ArrayList<>();
     private final List<DeviceStore> stores = new ArrayList<>();
+    private final AtomicBoolean stopping = new AtomicBoolean();
 
     public Daemon(DeviceConfig cfg) {
         this.cfg = cfg;
@@ -121,27 +123,31 @@ public final class Daemon {
         start("status", status);
         stoppers.add(status::stop);
 
-        java.util.concurrent.atomic.AtomicBoolean stopping = new java.util.concurrent.atomic.AtomicBoolean();
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            stopping.set(true);
-            for (Runnable r : stoppers) {
-                r.run();
-            }
-            for (Thread t : threads) {
-                try {
-                    t.join(5000);
-                } catch (InterruptedException ignored) {
-                }
-            }
-            for (DeviceStore s : stores) {
-                s.close();
-            }
-        }, "shutdown"));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::stop, "shutdown"));
         collectorThread.join();
         if (!stopping.get()) {
             System.err.println(Clocks.wallIso() + " collector stopped unexpectedly: " + state.lastError());
             Runtime.getRuntime().halt(1);
         }
         lock.release();
+        lock.channel().close();
+    }
+
+    public void stop() {
+        if (!stopping.compareAndSet(false, true)) {
+            return;
+        }
+        for (Runnable r : stoppers) {
+            r.run();
+        }
+        for (Thread t : threads) {
+            try {
+                t.join(5000);
+            } catch (InterruptedException ignored) {
+            }
+        }
+        for (DeviceStore s : stores) {
+            s.close();
+        }
     }
 }

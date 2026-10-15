@@ -12,7 +12,7 @@ One container (Java 17, heap ≤ 320 MB, a single instance) behind HTTPS, and du
 |---|---|---|---|---|
 | Hugging Face Spaces | Docker Spaces now require a paid plan; outbound ports limited | — | no | not usable |
 | Koyeb | no free compute tier listed (plans from $29/month) | — | 5 h/month Postgres | not usable |
-| **Render** | free web service: 512 MB, 0.1 CPU, 750 instance-hours/month; **sleeps after 15 min without inbound requests, ~1 min to wake**; may restart at any time | **no** (without a payment method, overages suspend instead of billing) | ephemeral disk; free Postgres expires after 30 days | **compute: chosen** |
+| **Render** | free web service: 512 MB, 0.1 CPU, 750 instance-hours/month; **sleeps after 15 min without inbound requests**; waking took 22.9-24.1 s in our measurements (below); may restart at any time | **no** (without a payment method, overages suspend instead of billing) | ephemeral disk; free Postgres expires after 30 days | **compute: chosen** |
 | **Neon** | free Postgres: 1 GB/project, 100 CU-hours/month (≈400 h at 0.25 CU), scales to zero after 5 min idle, 5 GB egress/month | **no** | yes | **database: chosen** |
 | Northflank Sandbox | always on, 2 services + 1 database | its FAQ mentions card verification; not confirmed either way | yes | fallback if sign-up needs no card |
 | Supabase | free Postgres 500 MB, pauses after a week idle | no | yes | database fallback |
@@ -32,12 +32,23 @@ Cloud image from `docker/cloud/Dockerfile`, `docker run --cpus 0.1 --memory 512m
 
 Because Spring Boot alone took longer than the whole switch-back budget at 0.1 CPU, the cloud now uses the JDK's built-in HTTP server with the same endpoints; storage, ingest and processing code are unchanged.
 
-Not measured: Render's real shared vCPU, Render's wake-up time, Neon's network latency and resume from scale-to-zero. With Neon each batch adds a few database round trips over the internet, so expect catch-up to be slower than above; the device sends 40,000-index batches, two in parallel, and halves the batch size if a request times out.
+## Measured on the deployed service
+
+Render free tier + Neon, reached over the internet from a GitHub Actions native ARM64 runner (`evidence/arm64-ci-history/`, runs 1-3; details in `evidence/SUMMARY.md`):
+
+| | Measured |
+|---|---|
+| Wake-up after the service had slept: first request to first `/health` 200 (includes our own start) | **22.9-24.1 s** (5 measurements: 22.94, 24.13, 22.95, 22.89, 22.94 s) |
+| Network cut → offline / restore → online (cloud awake) | 3.5-3.6 s / 3.8-3.9 s |
+| 2-hour backlog (5.76 M and 5.77 M samples, 29.2 MB on the wire, accelerated): copy complete after restore | 84 s and 85 s |
+| Online results, 1-hour soak | p50 772-1130 ms; 10,711 of 10,712 windows within 5 s (one took 5,497 ms in run 2) |
+
+Each batch adds database round trips to Neon over the internet, which is why catch-up took 84-85 s here against 156 s locally at 0.1 CPU and 11 s with an unthrottled local cloud; the device sends 40,000-index batches, two in parallel, and halves the batch size if a request times out.
 
 ## How mode switching behaves with a sleeping or cold cloud
 
-- **Healthy, awake cloud:** offline within ~6 s of a cut, online within ~2-4 s of restore (measured locally: 5.6 s and 1.0-1.5 s).
-- **Cloud asleep (Render free tier, after 15 minutes without requests):** while the device is online its 2-second heartbeat keeps the service awake. If the device was offline for more than 15 minutes, Render puts the service to sleep, and when the network returns the device stays **offline until the cloud answers `/health`**: Render's wake-up (~1 minute, from Render's docs) plus our 14-16 s start. During that time nothing is lost (the device keeps saving and processing locally), but the "back online within 10 s" criterion is missed. The first catch-up requests after an outage longer than a minute use a 120 s timeout, so they do not fail while the service warms up.
+- **Healthy, awake cloud:** offline 5.5 s after a cut and online 1.0 s after restore with a local cloud; 3.5-3.6 s and 3.8-3.9 s with the deployed cloud.
+- **Cloud asleep (Render free tier, after 15 minutes without requests):** while the device is online its 2-second heartbeat keeps the service awake. If the device was offline for more than 15 minutes, Render puts the service to sleep, and when the network returns the device stays **offline until the cloud answers `/health`**: measured at 22.9-24.1 s from the first request to the first `/health` 200 (5 measurements, our own start included), so the switch back takes about 25 s. During that time nothing is lost (the device keeps saving and processing locally), but the "back online within 10 s" criterion is missed. The first catch-up requests after an outage longer than a minute use a 120 s timeout, so they do not fail while the service warms up.
 - **Mitigation:** a free external uptime monitor (e.g. UptimeRobot) calling `https://<service>.onrender.com/health` every 5 minutes keeps the service awake during device outages. This needs an account (manual step).
 - Neon suspends its compute after 5 idle minutes; the first query after that waits for it to resume (usually under a few seconds). The heartbeat does not touch the database, so Neon can sleep while the device is offline.
 

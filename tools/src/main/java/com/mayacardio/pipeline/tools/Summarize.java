@@ -88,6 +88,18 @@ public final class Summarize {
             md.append("- `arm64-native-ci`: same instruction set, JVM and settings as the Pi, so RSS, disk writes and network bytes are the most representative; CPU still **understates** Pi 4 load because the runner's server-class cores are much faster than a Cortex-A72 (CPU model in each run's `environment.txt`). Its storage is a cloud disk, not an SD card, so write latency (not volume) differs.\n");
             md.append("- Bytes written count what reaches the block layer; an SD card's internal write amplification is not visible here. Network bytes depend on the cloud being local (plain HTTP) or remote (TLS).\n");
         }
+        JsonNode history = readIfExists(dir.resolve("write-rate-history").resolve("index.json"));
+        if (history != null) {
+            md.append("\n## Disk-write history\n\nThe measurements behind the design note's disk-write figures, all on the x86-64 laptop in a native amd64 container with the stand-in mock, `scripts/measure-resources.sh`; files in `write-rate-history/`.\n\n"
+                    + "| File | What changed | Seconds | CPU % of one core | MB written/hour |\n|---|---|---|---|---|\n");
+            for (JsonNode e : history) {
+                JsonNode n = Json.read(Files.readString(dir.resolve("write-rate-history").resolve(e.path("file").asText())));
+                md.append("| `").append(e.path("file").asText()).append("` | ").append(e.path("what").asText()).append(" | ")
+                        .append(Math.round(n.path("measured_seconds").asDouble())).append(" | ")
+                        .append(n.path("pipeline_avg_cpu_percent_of_one_core").asDouble()).append(" | ")
+                        .append(n.path("pipeline_mb_written_per_hour").asDouble()).append(" |\n");
+            }
+        }
         Path out = dir.resolve("SUMMARY.md");
         Files.writeString(out, md.toString());
         System.out.println("wrote " + out);
@@ -145,8 +157,11 @@ public final class Summarize {
         }
         Path csv = runDir.resolve("soak-latency.csv");
         if (Files.exists(csv)) {
+            List<String> rows = Files.readAllLines(csv);
+            long excluded = rows.stream().skip(1).filter(l -> l.endsWith(",1")).count();
             md.append("- per-window latency of the soak, times in IST and UTC: `").append(rel).append("/soak-latency.csv` (")
-                    .append(Files.readAllLines(csv).size() - 1).append(" windows)\n");
+                    .append(rows.size() - 1).append(" rows, one per online window of every session: ").append(rows.size() - 1 - excluded)
+                    .append(" measured, ").append(excluded).append(" left out near disruptions; the latency figures below cover the first session only)\n");
         }
         Path log = runDir.resolve("soak-device.log");
         if (Files.exists(log)) {

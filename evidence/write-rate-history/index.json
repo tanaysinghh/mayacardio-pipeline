@@ -1,0 +1,8 @@
+[
+  {"file": "per-sample-rows-4k-pages-5min.json", "what": "one row per sample, SQLite 4 KB pages (A/B pair with the next row, 5 minutes each)"},
+  {"file": "per-sample-rows-1k-pages-5min.json", "what": "one row per sample, 1 KB pages (A/B pair with the previous row)"},
+  {"file": "per-sample-rows-1k-pages-15min.json", "what": "one row per sample, 1 KB pages, 15 minutes"},
+  {"file": "../resources/amd64-native-online-15min.json", "what": "one row per reply (the current format), 1 KB pages, 15 minutes"},
+  {"file": "ci-start-order-before-polling-fix-10min.json", "what": "current format, daemon started right after the mock as in the CI script, before the polling fix, 10 minutes"},
+  {"file": "ci-start-order-after-polling-fix-15min.json", "what": "same start order with the polling fix (committed afterwards as 66fa9b7), 15 minutes"}
+]

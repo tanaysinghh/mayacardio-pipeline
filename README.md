@@ -4,7 +4,7 @@ A crash-safe pipeline for a Raspberry Pi 4 class board (ARM64, 4 cores, 2 GB). I
 
 > **Validated against stand-ins, not the official tools.** The official `biosignal-mock` and `check_ground_truth` were not available while this was built. `biosignal-mock` and `check_ground_truth` in `scripts/` are **stand-ins** written from the "Mock service" section of the assessment, and every result in `evidence/` was produced against them. The pipeline depends only on the wire protocol, so the official mock can be used with no code change; re-running the tests against the official tools is still to be done.
 
-> **No Raspberry Pi 4 run.** A real Pi 4 run was not possible (no board was available). ARM64 evidence comes from the **GitHub Actions ubuntu-24.04-arm native ARM64 runner, limited to 4 CPUs / 2 GB; not a Raspberry Pi 4; power cuts simulated by SIGKILL** (see [ARM64 evidence on GitHub Actions](#arm64-evidence-on-github-actions)). The Pi steps below are written and checked in containers but have not been run on a board.
+> **No Raspberry Pi 4 run.** A real Pi 4 run was not possible (no board was available). ARM64 evidence comes from the **GitHub Actions ubuntu-24.04-arm native ARM64 runner, limited to 4 CPUs / 2 GB; not a Raspberry Pi 4; power cuts simulated by SIGKILL** (see [ARM64 evidence on GitHub Actions](#arm64-evidence-on-github-actions)). The Pi steps below have not been run on a board. **Reboot and start at boot were not tested**: `install.sh` was run only inside a container with a fake `systemctl`, so the systemd units (`Restart=always`, start at boot) never ran; restarts were tested only by kill -9 and simulated power cuts, with the harness restarting the daemon.
 
 - Design note (architecture, guarantees, power-cut loss): [docs/DESIGN_NOTE.md](docs/DESIGN_NOTE.md) ([PDF](docs/DESIGN_NOTE.pdf))
 - Failure-test and resource evidence: [evidence/SUMMARY.md](evidence/SUMMARY.md)
@@ -45,7 +45,7 @@ A crash-safe pipeline for a Raspberry Pi 4 class board (ARM64, 4 cores, 2 GB). I
    ```sh
    sudo ./scripts/install.sh --cloud-url https://<service>.onrender.com --token <CLOUD_API_TOKEN> --with-mock-standin
    ```
-   This creates the `pipeline` user, installs to `/opt/pipeline`, writes `/etc/pipeline/pipeline.conf`, installs and starts `pipeline.service` (starts at boot, `Restart=always`, `RestartSec=1`, does not wait for the network) and puts `pipeline`, `biosignal-mock` and `check_ground_truth` on the PATH. `--with-mock-standin` also runs the stand-in as a service with exactly `biosignal-mock --mode signal --seed 7 --duration 3600 --port 7100`. With the **official** mock, omit that flag, install the official binary as `/usr/local/bin/biosignal-mock` (never overwritten by `install.sh`) and start it with the same command line.
+   This creates the `pipeline` user, installs to `/opt/pipeline`, writes `/etc/pipeline/pipeline.conf`, installs and starts `pipeline.service` (meant to start at boot, `Restart=always`, `RestartSec=1`, does not wait for the network; not tested on a real systemd, see above) and puts `pipeline`, `biosignal-mock` and `check_ground_truth` on the PATH. `--with-mock-standin` also runs the stand-in as a service with exactly `biosignal-mock --mode signal --seed 7 --duration 3600 --port 7100`. With the **official** mock, omit that flag, install the official binary as `/usr/local/bin/biosignal-mock` (never overwritten by `install.sh`) and start it with the same command line.
 6. **Check**
    ```sh
    pipeline status          # "mode":"online", samples_saved rising, backlog about one second of data

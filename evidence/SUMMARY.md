@@ -93,13 +93,13 @@ Latency (online windows, `computed_at` minus the time the window's last sample w
 
 ### Run 3, soak only, with slow-upload logging
 
-GitHub run 38788955634, commit `79480b6`, workflow conclusion: success. Files: `arm64-ci-history/run3-38788955634/`. Note: repeats only the 1-hour soak (scenarios off, no idle wake test) on a commit that adds only diagnostic logging over run 2: since f08ec93 the cloud is unchanged, the device only times and logs live uploads (3f2a988) and the test tools only write the latency CSV and summaries; the scenario results remain those of runs 1 and 2. 0 of 3,570 online windows over 5 s (max 4,074 ms, window 2761, ending 01:09:49.812 IST). The device logged 6 live uploads acknowledged after more than 2 s (max 4,267 ms), all on a reused connection (connect 0-1 ms, except the first upload of the run, 19 ms) with 1 attempt and the whole wait before the first response byte; in 2 of them the cloud finished storing the batch 2.2 s and 3.8 s after the device began sending, in 3 it stored it within 0.18 s and the reply took 1.8-4.1 s more to arrive, and the first upload of the run (00:23:51 IST, right after the cloud woke) has no window to compare with. Where the wait occurred inside each of those legs (network, Render's proxy, the cloud process or Neon) is not recorded.
+GitHub run 38788955634, commit `79480b6`, workflow conclusion: success. Files: `arm64-ci-history/run3-38788955634/`. Note: repeats only the 1-hour soak (scenarios off, no idle wake test) on a commit that adds only diagnostic logging over run 2: since f08ec93 the cloud is unchanged, the device only times and logs live uploads (3f2a988) and the test tools only write the latency CSV and summaries; the scenario results remain those of runs 1 and 2. 0 of 3,570 online windows over 5 s (max 4,074 ms, window 2761, ending 01:09:49.812 IST). The device logged 6 live uploads acknowledged after more than 2 s (max 4,267 ms), each in 1 attempt and with the whole wait before the first response byte; connect took 0-1 ms in five of them (which suggests an already-open connection; that is inferred from the connect time, not measured) and 19 ms in the first upload of the run; in 2 of them the cloud finished storing the batch 2.2 s and 3.8 s after the device began sending, in 3 it stored it within 0.18 s and the reply took 1.8-4.1 s more to arrive, and the first upload of the run (00:23:51 IST, right after the cloud woke) has no window to compare with. Where the wait occurred inside each of those legs (network, Render's proxy, the cloud process or Neon) is not recorded.
 
 Runner: Neoverse-N2 (vendor ARM, CPU part 0xd49), 4 CPUs, 15947 MB, aarch64, kernel 6.17.0-1022-azure; run 38788955634, commit `79480b67e335edae4bfe7a7f6de64f66f6c96061`, cloud https://mayacardio-pipeline-cloud.onrender.com. Full `uname -a`, `lscpu` and `/proc/cpuinfo`: `arm64-ci-history/run3-38788955634/environment.txt`.
 
 - cloud-wake-at-start: 22.94 s to the first HTTP 200 (first request of this run, before any test traffic); inferred asleep before: true; a warm request afterwards took 0.287559 s
 - cloud clean-up: 2 of 2 test sessions deleted, 0 failed
-- per-window latency of the soak, times in IST and UTC: `arm64-ci-history/run3-38788955634/soak-latency.csv` (3652 windows)
+- per-window latency of the soak, times in IST and UTC: `arm64-ci-history/run3-38788955634/soak-latency.csv` (3652 rows, one per online window of every session: 3611 measured, 41 left out near disruptions; the latency figures below cover the first session only)
 - soak device log `arm64-ci-history/run3-38788955634/soak-device.log`: 6 live uploads acknowledged after more than 2 s
   - `2026-10-15T18:53:54.407547434Z slow live upload: started 2026-10-15T18:53:51.250395133Z, 10446 bytes, 2375 samples, connect 19 ms, first response byte 3155 ms, total 3156 ms, attempts 1`
   - `2026-10-15T18:56:39.513388203Z slow live upload: started 2026-10-15T18:56:37.235255558Z, 3832 bytes, 800 samples, connect 1 ms, first response byte 2278 ms, total 2278 ms, attempts 1`
@@ -134,3 +134,16 @@ How they relate to a Raspberry Pi 4 (Cortex-A72, 1.5-1.8 GHz, SD card):
 - `arm64-emulated`: QEMU user-mode emulation on that laptop; binary translation inflates CPU and RSS, so both **overstate** what the same code costs natively on that laptop; the Pi's slower cores push the other way, so this row is not a Pi estimate in either direction.
 - `arm64-native-ci`: same instruction set, JVM and settings as the Pi, so RSS, disk writes and network bytes are the most representative; CPU still **understates** Pi 4 load because the runner's server-class cores are much faster than a Cortex-A72 (CPU model in each run's `environment.txt`). Its storage is a cloud disk, not an SD card, so write latency (not volume) differs.
 - Bytes written count what reaches the block layer; an SD card's internal write amplification is not visible here. Network bytes depend on the cloud being local (plain HTTP) or remote (TLS).
+
+## Disk-write history
+
+The measurements behind the design note's disk-write figures, all on the x86-64 laptop in a native amd64 container with the stand-in mock, `scripts/measure-resources.sh`; files in `write-rate-history/`.
+
+| File | What changed | Seconds | CPU % of one core | MB written/hour |
+|---|---|---|---|---|
+| `per-sample-rows-4k-pages-5min.json` | one row per sample, SQLite 4 KB pages (A/B pair with the next row, 5 minutes each) | 301 | 2.85 | 573.38 |
+| `per-sample-rows-1k-pages-5min.json` | one row per sample, 1 KB pages (A/B pair with the previous row) | 301 | 2.82 | 333.36 |
+| `per-sample-rows-1k-pages-15min.json` | one row per sample, 1 KB pages, 15 minutes | 901 | 2.09 | 336.41 |
+| `../resources/amd64-native-online-15min.json` | one row per reply (the current format), 1 KB pages, 15 minutes | 902 | 2.3 | 175.79 |
+| `ci-start-order-before-polling-fix-10min.json` | current format, daemon started right after the mock as in the CI script, before the polling fix, 10 minutes | 601 | 2.5 | 285.77 |
+| `ci-start-order-after-polling-fix-15min.json` | same start order with the polling fix (committed afterwards as 66fa9b7), 15 minutes | 902 | 2.06 | 185.77 |

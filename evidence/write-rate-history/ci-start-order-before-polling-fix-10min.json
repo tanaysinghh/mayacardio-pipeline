@@ -1,0 +1,20 @@
+{
+  "environment": {"machine": "x86_64", "model": "13th Gen Intel(R) Core(TM) i7-13700HX", "kernel": "6.6.87.2-microsoft-standard-WSL2", "cpus": 24, "container": true},
+  "pid": 49,
+  "measured_seconds": 600.9,
+  "daemon_restarted_during_window": false,
+  "pipeline_avg_cpu_percent_of_one_core": 2.50,
+  "pipeline_avg_cpu_percent_of_all_cores": 0.104,
+  "pipeline_peak_rss_mb_sampled": 96.0,
+  "pipeline_vm_hwm_mb_since_start": 96.0,
+  "pipeline_avg_rss_mb": 94.3,
+  "pipeline_mb_written_to_storage": 47.70,
+  "pipeline_mb_written_per_hour": 285.77,
+  "iface": "eth0",
+  "iface_mb_sent": 2.61,
+  "iface_mb_received": 0.37,
+  "pipeline_http_mb_sent_app_counter": 2.55,
+  "mock_avg_cpu_percent_of_one_core": 0.84,
+  "mock_mb_written": 12.70,
+  "notes": "write_bytes counts bytes this process caused to be sent to the block layer (SQLite database and WAL; the status file is on tmpfs). Interface bytes include all traffic on the interface. The app counter is request bodies plus an estimated 350 bytes of headers per request, before TLS."
+}
