@@ -11,11 +11,14 @@ import com.mayacardio.pipeline.device.store.DeviceStore;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLongArray;
 
 public final class LiveUploader implements Runnable {
+    static final long SLOW_UPLOAD_LOG_MS = 2000;
+
     private final DeviceStore store;
     private final CloudClient cloud;
     private final DeviceState state;
@@ -103,11 +106,13 @@ public final class LiveUploader implements Runnable {
         }
         if (!runs.isEmpty()) {
             byte[] body = BatchCodec.encode(new BatchCodec.Batch(sessionId, Clocks.wallMs(), runs));
-            JsonNode resp = cloud.ingest(body, timeoutMs);
             long samples = 0;
             for (SampleRun r : runs) {
                 samples += r.count();
             }
+            long sent = samples;
+            Instant startedAt = Instant.now();
+            JsonNode resp = cloud.ingest(body, timeoutMs, t -> logIfSlow(t, sent, startedAt));
             state.uploadedSamples.addAndGet(samples);
             if (state.sid() == sid) {
                 state.cloudHeld.set(1, resp.path("held_1").asLong());
@@ -128,6 +133,17 @@ public final class LiveUploader implements Runnable {
             store.updateSync(sid, state.cloudHeld.get(1), state.cloudHeld.get(2), null, null);
             lastPersistMono = now;
         }
+    }
+
+    private void logIfSlow(CloudClient.Timing t, long samples, Instant startedAt) {
+        state.maxLiveUploadMs.accumulateAndGet(t.totalMs(), Math::max);
+        if (t.totalMs() <= SLOW_UPLOAD_LOG_MS) {
+            return;
+        }
+        state.slowLiveUploads.incrementAndGet();
+        System.out.println(Clocks.wallIso() + " slow live upload: started " + startedAt + ", " + t.bytes() + " bytes, " + samples
+                + " samples, connect " + t.connectMs() + " ms, first response byte " + t.firstByteMs() + " ms, total "
+                + t.totalMs() + " ms, attempts " + t.attempts());
     }
 
     private List<DeviceStore.SessionInfo> recentSessions() throws SQLException {

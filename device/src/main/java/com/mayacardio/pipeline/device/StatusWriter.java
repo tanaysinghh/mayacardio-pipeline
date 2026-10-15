@@ -142,6 +142,8 @@ public final class StatusWriter implements Runnable {
         m.put("offline_windows", state.offlineWindows.get());
         m.put("uploaded_samples", state.uploadedSamples.get());
         m.put("http_bytes_sent", state.bytesSent.get());
+        m.put("max_live_upload_ms", state.maxLiveUploadMs.get());
+        m.put("slow_live_uploads", state.slowLiveUploads.get());
         m.put("last_error", state.lastError());
         m.put("updated_at", Clocks.wallIso());
         writeAtomically(file, Json.write(m));

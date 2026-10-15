@@ -533,10 +533,12 @@ public final class FailureTests {
         out.put("mock_restarts_after_session_end", mockRestarts);
         out.put("max_backlog_samples_seen", maxBacklog);
         Map<String, Object> lat = null;
+        List<String> latencyRows = new ArrayList<>();
+        latencyRows.add(Rig.LATENCY_CSV_HEADER);
         for (JsonNode s : rig.sessions()) {
             String sid = s.get("session").asText();
             if (Files.exists(rig.gtDir.resolve(sid + ".json")) && Files.exists(rig.work.resolve("results-" + sid + ".jsonl"))) {
-                Map<String, Object> l = rig.latency(sid, disrupted, from + 5000);
+                Map<String, Object> l = rig.latency(sid, disrupted, from + 5000, latencyRows);
                 if (lat == null) {
                     lat = l;
                     out.put("online_latency", l);
@@ -544,6 +546,16 @@ public final class FailureTests {
                     out.put("online_latency_session_" + sid, l);
                 }
             }
+        }
+        Files.createDirectories(evidence);
+        Files.write(evidence.resolve("soak-latency.csv"), latencyRows);
+        out.put("latency_csv", "soak-latency.csv: every online window of every session, latency_ms as defined above, device_batch_after_end_ms = the device's device_captured_at (when it built the batch the cloud last received), cloud_received_after_end_ms = the cloud's data_received_at (its last ingest when it computed the window) minus the window end, excluded_near_disruption = 1 for windows left out of the figures");
+        Path deviceLog = rig.work.resolve("device.log");
+        if (Files.exists(deviceLog)) {
+            byte[] log = Files.readAllBytes(deviceLog);
+            int keep = Math.min(log.length, 200_000);
+            Files.write(evidence.resolve("soak-device.log"), java.util.Arrays.copyOfRange(log, log.length - keep, log.length));
+            out.put("device_log", "soak-device.log: the daemon's log (last 200 KB), including any 'slow live upload' lines (acknowledged after more than 2 s)");
         }
         if (rig.externalCloudUrl != null) {
             out.put("latency_clock_note", "computed_at is the cloud host's wall clock and the window end is this machine's wall clock; both NTP-synchronised, so the figures include their offset (normally a few ms)");

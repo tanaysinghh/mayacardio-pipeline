@@ -5,6 +5,7 @@ import com.mayacardio.pipeline.core.ExportFormat;
 import com.mayacardio.pipeline.core.Json;
 import com.mayacardio.pipeline.core.LossRange;
 import com.mayacardio.pipeline.core.RangeSet;
+import com.mayacardio.pipeline.device.Clocks;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,12 +15,15 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -33,6 +37,9 @@ public final class CloudClient {
     }
 
     public record Ranges(RangeSet[] held, long[] heldCount) {
+    }
+
+    public record Timing(int bytes, int attempts, long connectMs, long firstByteMs, long totalMs) {
     }
 
     private final String base;
@@ -73,13 +80,17 @@ public final class CloudClient {
     }
 
     private HttpResponse<String> send(HttpRequest r, long bodyBytes) throws IOException {
+        return send(r, bodyBytes, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+    }
+
+    private HttpResponse<String> send(HttpRequest r, long bodyBytes, HttpResponse.BodyHandler<String> handler) throws IOException {
         bytesSent.addAndGet(bodyBytes + HEADER_ESTIMATE);
         Thread self = Thread.currentThread();
         synchronized (inFlight) {
             inFlight.add(self);
         }
         try {
-            HttpResponse<String> resp = http.send(r, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            HttpResponse<String> resp = http.send(r, handler);
             if (resp.statusCode() / 100 != 2) {
                 throw new CloudException("HTTP " + resp.statusCode() + " from " + r.uri().getPath() + ": " + abbreviate(resp.body()));
             }
@@ -113,6 +124,37 @@ public final class CloudClient {
                 .header("Content-Type", "application/octet-stream")
                 .POST(HttpRequest.BodyPublishers.ofByteArray(gzipBatch)).build();
         return Json.read(send(r, gzipBatch.length).body());
+    }
+
+    public JsonNode ingest(byte[] gzipBatch, long timeoutMs, Consumer<Timing> timing) throws IOException {
+        long start = Clocks.monoMs();
+        AtomicLong bodyAt = new AtomicLong(start);
+        AtomicLong headersAt = new AtomicLong(start);
+        AtomicInteger attempts = new AtomicInteger();
+        HttpRequest.BodyPublisher bytes = HttpRequest.BodyPublishers.ofByteArray(gzipBatch);
+        HttpRequest.BodyPublisher publisher = new HttpRequest.BodyPublisher() {
+            @Override
+            public long contentLength() {
+                return bytes.contentLength();
+            }
+
+            @Override
+            public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
+                attempts.incrementAndGet();
+                bodyAt.set(Clocks.monoMs());
+                bytes.subscribe(subscriber);
+            }
+        };
+        HttpRequest r = req("/api/v1/ingest", timeoutMs)
+                .header("Content-Type", "application/octet-stream")
+                .POST(publisher).build();
+        HttpResponse<String> resp = send(r, gzipBatch.length, info -> {
+            headersAt.set(Clocks.monoMs());
+            return HttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8);
+        });
+        long end = Clocks.monoMs();
+        timing.accept(new Timing(gzipBatch.length, attempts.get(), bodyAt.get() - start, headersAt.get() - start, end - start));
+        return Json.read(resp.body());
     }
 
     public Ranges ranges(String session, long timeoutMs) throws IOException {

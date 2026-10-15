@@ -29,6 +29,8 @@ public final class DeviceState {
     public final AtomicLong bytesSent = new AtomicLong();
     public final AtomicLong uploadedSamples = new AtomicLong();
     public final AtomicLong offlineWindows = new AtomicLong();
+    public final AtomicLong slowLiveUploads = new AtomicLong();
+    public final AtomicLong maxLiveUploadMs = new AtomicLong();
     private volatile boolean diskFull;
     private volatile boolean mockConnected;
     private volatile String mode = OFFLINE;

@@ -29,9 +29,9 @@ trap 'rm -rf "$TMP"' EXIT
 gh run download "$RUN" --name arm64-evidence --dir "$TMP"
 [ -d "$TMP/arm64-ci" ] || { echo "artifact arm64-evidence has no arm64-ci/ directory"; exit 1; }
 
-big=$(find "$TMP" -type f -size +300k)
+big=$(find "$TMP" -type f \( \( -size +300k ! -name '*.csv' \) -o -size +600k \))
 if [ -n "$big" ]; then
-  echo "refusing to copy files larger than 300 KB into evidence/:"
+  echo "refusing to copy files larger than 300 KB (600 KB for the latency CSV) into evidence/:"
   echo "$big"
   exit 1
 fi
@@ -54,7 +54,9 @@ if [ -d "$TMP/resources" ]; then
 fi
 SHA=$(gh run view "$RUN" --json headSha --jq '.headSha[0:7]')
 CONC=$(gh run view "$RUN" --json conclusion --jq '.conclusion')
-printf '{"run": %d, "github_run_id": "%s", "commit": "%s", "label": "", "workflow_conclusion": "%s", "note": null}\n' "$N" "$RUN" "$SHA" "$CONC" > "$DEST/run.json"
+SCOPE=""
+[ -f "$DEST/netcut.json" ] || SCOPE="soak only"
+printf '{"run": %d, "github_run_id": "%s", "commit": "%s", "label": "%s", "workflow_conclusion": "%s", "note": null}\n' "$N" "$RUN" "$SHA" "$SCOPE" "$CONC" > "$DEST/run.json"
 echo "copied (fill in the label in $DEST/run.json, then summarize again):"
 ls -l "$DEST" "${NEW_RES[@]}"
 

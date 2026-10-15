@@ -19,6 +19,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -443,7 +445,19 @@ public final class Rig implements AutoCloseable {
         return m;
     }
 
+    public static final String LATENCY_CSV_HEADER = "session,window,window_end_ist,window_end_utc,latency_ms,device_batch_after_end_ms,cloud_received_after_end_ms,excluded_near_disruption";
+    private static final DateTimeFormatter CSV_IST = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("Asia/Kolkata"));
+    private static final DateTimeFormatter CSV_UTC = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("UTC"));
+
     public Map<String, Object> latency(String sessionId, List<long[]> disruptedMs, long windowsFromMs) throws Exception {
+        return latency(sessionId, disruptedMs, windowsFromMs, null);
+    }
+
+    private static String afterEnd(JsonNode n, String field, long endWall) {
+        return n.hasNonNull(field) ? Long.toString(Instant.parse(n.get(field).asText()).toEpochMilli() - endWall) : "";
+    }
+
+    public Map<String, Object> latency(String sessionId, List<long[]> disruptedMs, long windowsFromMs, List<String> csvRows) throws Exception {
         Path gt = gtDir.resolve(sessionId + ".json");
         JsonNode g = Json.read(Files.readString(gt));
         long started = g.get("started_at_ms").asLong();
@@ -469,12 +483,19 @@ public final class Rig implements AutoCloseable {
                     disturbed = true;
                 }
             }
+            long computed = Instant.parse(n.get("computed_at").asText()).toEpochMilli();
+            long latency = computed - endWall;
+            if (csvRows != null) {
+                String batched = afterEnd(n, "device_captured_at", endWall);
+                String received = afterEnd(n, "data_received_at", endWall);
+                Instant end = Instant.ofEpochMilli(endWall);
+                csvRows.add(sessionId + "," + w + "," + CSV_IST.format(end) + "," + CSV_UTC.format(end) + "," + latency + ","
+                        + batched + "," + received + "," + (disturbed ? 1 : 0));
+            }
             if (disturbed) {
                 excluded++;
                 continue;
             }
-            long computed = Instant.parse(n.get("computed_at").asText()).toEpochMilli();
-            long latency = computed - endWall;
             lat.add(latency);
             if (latency > 5000) {
                 over5++;
