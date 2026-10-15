@@ -17,6 +17,7 @@ import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -29,6 +30,7 @@ public final class Main {
     }
 
     public static void main(String[] args) throws Exception {
+        Security.setProperty("networkaddress.cache.negative.ttl", "0");
         if (args.length == 0) {
             usage();
             System.exit(2);
