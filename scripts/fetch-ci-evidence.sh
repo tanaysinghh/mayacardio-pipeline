@@ -6,7 +6,7 @@ usage() {
 usage: scripts/fetch-ci-evidence.sh [RUN_ID]
 
 Downloads the compact results of the latest completed run of .github/workflows/arm64-evidence.yml (or of RUN_ID)
-with the GitHub CLI (run `gh auth login` first), puts them in evidence/arm64-ci/ and evidence/resources/,
+with the GitHub CLI (run `gh auth login` first), adds them as a new run folder under evidence/arm64-ci-history/ (earlier runs are kept) and evidence/resources/,
 and regenerates evidence/SUMMARY.md. Log tails (artifact arm64-evidence-logs) are not copied.
 EOF
 }
@@ -36,14 +36,27 @@ if [ -n "$big" ]; then
   exit 1
 fi
 
-rm -rf evidence/arm64-ci
-mkdir -p evidence/arm64-ci evidence/resources
-cp "$TMP"/arm64-ci/* evidence/arm64-ci/
-if [ -d "$TMP/resources" ]; then
-  cp "$TMP"/resources/*.json evidence/resources/
+N=$(( $(find evidence/arm64-ci-history -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l) + 1 ))
+DEST="evidence/arm64-ci-history/run$N-$RUN"
+if ls -d evidence/arm64-ci-history/run*-"$RUN" >/dev/null 2>&1; then
+  echo "run $RUN is already in evidence/arm64-ci-history/; nothing copied"
+  exit 1
 fi
-echo "copied:"
-ls -l evidence/arm64-ci evidence/resources
+mkdir -p "$DEST" evidence/resources
+cp "$TMP"/arm64-ci/* "$DEST"/
+NEW_RES=()
+if [ -d "$TMP/resources" ]; then
+  for f in "$TMP"/resources/*.json; do
+    t="evidence/resources/$(basename "$f" | sed "s/^arm64-native-ci-/arm64-native-ci-run$N-/")"
+    cp "$f" "$t"
+    NEW_RES+=("$t")
+  done
+fi
+SHA=$(gh run view "$RUN" --json headSha --jq '.headSha[0:7]')
+CONC=$(gh run view "$RUN" --json conclusion --jq '.conclusion')
+printf '{"run": %d, "github_run_id": "%s", "commit": "%s", "label": "", "workflow_conclusion": "%s", "note": null}\n' "$N" "$RUN" "$SHA" "$CONC" > "$DEST/run.json"
+echo "copied (fill in the label in $DEST/run.json, then summarize again):"
+ls -l "$DEST" "${NEW_RES[@]}"
 
 JAR=""
 for j in dist/pipeline-tools.jar tools/target/pipeline-tools.jar; do
@@ -55,7 +68,7 @@ else
   echo "build first (./mvnw -DskipTests package), then run: java -jar tools/target/pipeline-tools.jar summarize evidence"
 fi
 
-for f in evidence/resources/arm64-native-ci-online-*.json; do
+for f in "${NEW_RES[@]}"; do
   [ -f "$f" ] || continue
   awk -v name="$(basename "$f" .json)" '
     /"model"/ { m = $0; sub(/.*"model": "/, "", m); sub(/".*/, "", m) }

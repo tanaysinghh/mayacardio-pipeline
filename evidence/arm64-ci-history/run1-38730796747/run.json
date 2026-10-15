@@ -1,0 +1,1 @@
+{"run": 1, "github_run_id": "38730796747", "commit": "4a3b665", "label": "before the polling fix", "workflow_conclusion": "success", "note": "the collector re-read every caught-up reply here (about 8 replies/s instead of 4), so disk writes were 264.55 MB/h; fixed in commit 66fa9b7"}
