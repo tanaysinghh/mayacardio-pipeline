@@ -26,6 +26,7 @@ public final class Collector implements Runnable {
     private static final long ALIVE_WINDOW_MS = 5000;
     private static final long SKIP_CONFIRM_MS = 11_000;
     private static final int MAX_HINTS = 64;
+    private static final long RECHECK_CAUGHT_UP_MS = 10_000;
 
     private final DeviceStore store;
     private final DeviceState state;
@@ -58,6 +59,10 @@ public final class Collector implements Runnable {
     private boolean needProbe = true;
     private long reconnectBackoff = 250;
     private final int[] maxCount = new int[3];
+    private final int[] lastCount = new int[3];
+    private final boolean[] rereadAfter = new boolean[3];
+    private final int[] caughtUpCount = new int[3];
+    private final long[] trustCaughtUpUntil = new long[3];
 
     public Collector(DeviceStore store, DeviceState state, MockClient client, DiskGuard disk,
                      long pollIntervalMs, int memoryCapSamples) {
@@ -209,7 +214,16 @@ public final class Collector implements Runnable {
             state.repliesOk.incrementAndGet();
             maxCount[s] = Math.max(maxCount[s], rep.count());
             process(s, rep);
-            if (rep.count() > 0 && rep.count() * 10L >= maxCount[s] * 9L) {
+            long now = Clocks.monoMs();
+            if (rereadAfter[s] && rep.count() * 2L < lastCount[s]) {
+                caughtUpCount[s] = Math.max(lastCount[s], now < trustCaughtUpUntil[s] ? caughtUpCount[s] : 0);
+                trustCaughtUpUntil[s] = now + RECHECK_CAUGHT_UP_MS;
+            }
+            boolean maybeCapped = rep.count() > 0 && rep.count() * 10L >= maxCount[s] * 9L;
+            boolean knownCaughtUp = now < trustCaughtUpUntil[s] && rep.count() * 10L <= caughtUpCount[s] * 11L;
+            rereadAfter[s] = maybeCapped && !knownCaughtUp;
+            lastCount[s] = rep.count();
+            if (rereadAfter[s]) {
                 more = true;
             }
         }

@@ -148,6 +148,20 @@ class CollectorFaultTest {
     }
 
     @Test
+    void caughtUpCollectorDoesNotReReadEveryCycle() throws Exception {
+        DeviceStore.open(dir.resolve("warm-up.db")).close();
+        server = new MockServer(new Generator("ramp", 7), 1.0, 0, 10, 0, -1, null);
+        server.start();
+        Runner r = start();
+        sleep(4000);
+        long replies = r.state.repliesOk.get();
+        String sid = r.state.sessionId();
+        r.stop();
+        assertTrue(replies <= 4000 / 100 * 2 * 13 / 10, "replies " + replies);
+        assertTrue(verify(sid, new Generator("ramp", 7)).lostByReason().isEmpty());
+    }
+
+    @Test
     void corruptRepliesAreDiscardedAndReRead() throws Exception {
         startMock();
         Runner r = start();
